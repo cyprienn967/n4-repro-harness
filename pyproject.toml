@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aig-exact"
+version = "0.1.0"
+description = "Exact AIG synthesis and Boolean-function research harness"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+sat = ["python-sat>=1.8.dev13,<2"]
+analysis = ["pandas>=2,<3", "pyarrow>=15", "networkx>=3,<4"]
+
+[project.scripts]
+aig-exact = "aig_exact.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

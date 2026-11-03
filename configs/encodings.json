@@ -1,0 +1,16 @@
+{
+  "deltas": [-1, 0],
+  "variants": [
+    {"name": "ssv-baseline", "options": {"encoding": "ssv"}},
+    {"name": "msv-baseline", "options": {"encoding": "msv"}},
+    {"name": "ditt-baseline", "options": {"encoding": "ditt"}},
+    {"name": "ssv-pairwise", "options": {"encoding": "ssv", "cardinality": "pairwise"}},
+    {"name": "ssv-unordered", "options": {"encoding": "ssv", "fanin_order": false}},
+    {"name": "ssv-no-trivial", "options": {"encoding": "ssv", "no_trivial": true}},
+    {"name": "ssv-no-duplicates", "options": {"encoding": "ssv", "no_duplicates": true}},
+    {"name": "ssv-all-used", "options": {"encoding": "ssv", "all_used": true}},
+    {"name": "ssv-target-symmetry", "options": {"encoding": "ssv", "target_symmetry": true}},
+    {"name": "ssv-combined", "options": {"encoding": "ssv", "no_trivial": true, "no_duplicates": true, "all_used": true, "target_symmetry": true}}
+  ],
+  "solvers": [{"backend": "pysat", "solver": "cadical195", "label": "cadical195"}]
+}
