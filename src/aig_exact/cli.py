@@ -1,6 +1,10 @@
 import argparse
 import json
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from contextlib import closing
 from dataclasses import asdict, fields
+from functools import partial
+from multiprocessing import get_context
 from pathlib import Path
 from . import boolean, circuit, solver, analysis
 from .encode import Instance, Options
@@ -54,6 +58,22 @@ def task_from(args, k=None):
     return task
 
 
+def minimum_rows(values, search, workers):
+    if workers == 1 or len(values) < 2:
+        for index, f in enumerate(values):
+            yield index, search(f=f)
+        return
+
+    pool = ProcessPoolExecutor(max_workers=min(workers, len(values)),
+                               mp_context=get_context('spawn'))
+    try:
+        pending = {pool.submit(search, f=f): index for index, f in enumerate(values)}
+        for future in as_completed(pending):
+            yield pending[future], future.result()
+    finally:
+        pool.shutdown(cancel_futures=True)
+
+
 def main():
     p = argparse.ArgumentParser(description='Exact AND/complemented-edge circuits; no experiment runs implicitly.')
     sub = p.add_subparsers(dest='command', required=True)
@@ -85,6 +105,8 @@ def main():
     rep.add_argument('--functions', type=Path, required=True)
     rep.add_argument('--max-gates', type=int, default=10)
     rep.add_argument('--expect-max', type=int)
+    rep.add_argument('--workers', type=int, default=1,
+                     help='Number of parallel truth-table searches (default: 1)')
     rep.add_argument('--allow-subset', action='store_true')
     rep.add_argument('--out', type=Path, required=True)
     add_options(rep)
@@ -169,6 +191,9 @@ def dispatch(a):
             raise RuntimeError(f'Run ended with {row["status"]}')
     elif cmd in ('minimum', 'reproduce'):
         values = tables(a.functions) if cmd == 'reproduce' else [int(a.hex, 16)]
+        workers = getattr(a, 'workers', 1)
+        if workers < 1:
+            raise ValueError('--workers must be at least 1')
         for f in values:
             boolean.validate(a.n, f)
         coverage = False
@@ -179,19 +204,26 @@ def dispatch(a):
             if len(classes) != len(values) or len(classes) != EXPECTED_CLASSES[a.n]:
                 raise ValueError('Functions must cover every NPN class exactly once; use --allow-subset for pilot runs')
             coverage = True
+        if workers > 1 and len(set(values)) != len(values):
+            raise ValueError('Parallel reproduction requires distinct truth tables')
         a.out.mkdir(parents=True, exist_ok=True)
         report = dict(n=a.n, full_npn_coverage=coverage, functions=[], complete=False,
                       observed_maximum=None, claim_verified=False)
         # Validate solver arguments before the first task.
         a.hex = boolean.hex_tt(a.n, values[0]) if values else '0'
         template = task_from(a, k=0)
-        for f in values:
-            row = minimum(a.n, f, a.max_gates, a.out / 'runs', options(a),
-                          template['backend'], template.get('solver', 'cadical195'),
-                          template.get('solver_argv'), template.get('timeout'), a.resume)
-            report['functions'].append(row)
-            dump(a.out / 'minima.json', report)
-            print(f'{row["hex"]}: {row["status"]}, minimum={row["minimum"]}', flush=True)
+        search = partial(minimum, n=a.n, max_k=a.max_gates, root=a.out / 'runs',
+                         options=options(a), backend=template['backend'],
+                         solver_name=template.get('solver', 'cadical195'),
+                         solver_argv=template.get('solver_argv'),
+                         timeout=template.get('timeout'), resume=a.resume)
+        rows = [None] * len(values)
+        with closing(minimum_rows(values, search, workers)) as completed:
+            for index, row in completed:
+                rows[index] = row
+                report['functions'] = [r for r in rows if r is not None]
+                dump(a.out / 'minima.json', report)
+                print(f'{row["hex"]}: {row["status"]}, minimum={row["minimum"]}', flush=True)
         report['complete'] = bool(values) and all(r['status'] == 'EXACT' for r in report['functions'])
         report['observed_maximum'] = max((r['minimum'] for r in report['functions'] if r['status'] == 'EXACT'), default=None)
         expected = getattr(a, 'expect_max', None)

@@ -107,7 +107,7 @@ Then find every exact minimum:
 ```bash
 aig-exact reproduce -n 4 --functions data/npn4.txt \
   --max-gates 10 --expect-max 10 --encoding ssv \
-  --out results/reproduction --resume
+  --workers 8 --out results/reproduction --resume
 ```
 
 This validates that your input contains one representative of every NPN class,
@@ -118,6 +118,10 @@ error or unknown prevents that function from being declared exact. The command
 returns a nonzero exit code for an incomplete campaign or a failed expected
 maximum. `--allow-subset` permits pilot runs, but cannot establish the universal
 L(4) claim.
+
+`--workers` defaults to 1. With multiple workers, each process searches a
+different function and still tries that function's gate counts in order. The
+report keeps the input order even when functions finish out of order.
 
 `claim_verified` in this report means the solver-based reproduction completed
 with validated witnesses and full coverage. It does **not** mean the UNSAT
