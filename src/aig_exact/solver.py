@@ -1,9 +1,11 @@
 """Solver boundary: preserve UNKNOWN/errors; never infer UNSAT from missing models."""
+import json
 import os
 import re
 import shlex
 import signal
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -65,18 +67,36 @@ def external(argv, directory, timeout):
     wall = time.perf_counter() - started
     text = (directory / 'solver.stdout').read_text(errors='replace')
     errors = (directory / 'solver.stderr').read_text(errors='replace')
-    status, model = parse_output(text, process.returncode)
     if timed_out:
         status, model = 'TIMEOUT', []
+    else:
+        status, model = parse_output(text, process.returncode)
     return dict(status=status, model=model, solve_wall_seconds=wall,
                 solver_argv=command, returncode=process.returncode, **parse_stats(text + '\n' + errors))
 
 
-def embedded(instance, name, directory):
+def embedded(instance, name, directory, timeout=None):
+    if timeout is None:
+        return _embedded(instance.cnf.clauses, name, directory)
+
+    started = time.perf_counter()
+    try:
+        child = subprocess.run(
+            [sys.executable, '-m', 'aig_exact.solver', name, str(directory.resolve())],
+            capture_output=True, text=True, timeout=timeout,
+        )
+    except subprocess.TimeoutExpired:
+        return dict(status='TIMEOUT', model=[], solve_wall_seconds=time.perf_counter() - started)
+    if child.returncode:
+        raise RuntimeError(child.stderr.strip() or f'PySAT subprocess exited with {child.returncode}')
+    return json.loads(child.stdout)
+
+
+def _embedded(clauses, name, directory):
     from pysat.solvers import Solver
     started = time.perf_counter()
     # Build/solve times separated: bootstrap clauses are counted in solver init.
-    with Solver(name=name, bootstrap_with=instance.cnf.clauses, use_timer=True) as solver:
+    with Solver(name=name, bootstrap_with=clauses, use_timer=True) as solver:
         initialized = time.perf_counter()
         sat = solver.solve()
         finished = time.perf_counter()
@@ -108,3 +128,11 @@ def check_proof(directory, checker, timeout=None, lrat=False):
         status = 'TIMEOUT'
     (directory / 'proof-check.log').write_text(text)
     return dict(status=status, checker_argv=cmd, wall_seconds=time.perf_counter() - started)
+
+
+if __name__ == '__main__':
+    from pysat.formula import CNF
+
+    name, directory = sys.argv[1:]
+    clauses = CNF(from_file=str(Path(directory, 'instance.cnf'))).clauses
+    print(json.dumps(_embedded(clauses, name, directory)))

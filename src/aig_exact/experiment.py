@@ -1,6 +1,7 @@
 """Deterministic per-task artifacts; no shared append-only writes between workers."""
 import hashlib
 import json
+import math
 import platform
 import subprocess
 import sys
@@ -38,11 +39,14 @@ def provenance():
                 python=sys.version, platform=platform.platform())
 
 
-def run_task(task, root, resume=False):
+def run_task(task, root, resume=False, *, progress=False):
     allowed = {'n', 'hex', 'k', 'options', 'backend', 'solver', 'solver_argv', 'timeout', 'label'}
     if set(task) - allowed:
         raise ValueError(f'Unknown task fields: {set(task) - allowed}')
     task = dict(task)
+    timeout = task.get('timeout')
+    if timeout is not None and (not math.isfinite(timeout) or timeout <= 0):
+        raise ValueError('timeout must be a positive, finite number of seconds')
     n, f, k = task['n'], int(task['hex'], 16), task['k']
     options = Options(**task.get('options', {}))
     prov = provenance()
@@ -54,15 +58,15 @@ def run_task(task, root, resume=False):
     if backend == 'pysat':
         import importlib.metadata
         prov['python_sat_version'] = importlib.metadata.version('python-sat')
-        if task.get('timeout') is not None:
-            raise ValueError('Use external backend for hard per-run timeouts')
     else:
         import shutil
         binary = shutil.which(task['solver_argv'][0])
         if binary is None:
             raise FileNotFoundError(task['solver_argv'][0])
         prov['solver_binary_sha256'] = digest(binary)
-    identity = dict(task=task, source=prov['source_sha256'],
+    # A definitive answer can be reused when only the time limit changes.
+    identity = dict(task={key: value for key, value in task.items() if key != 'timeout'},
+                    source=prov['source_sha256'],
                     solver_binary=prov.get('solver_binary_sha256'),
                     python_sat=prov.get('python_sat_version'))
     run_id = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()[:24]
@@ -86,6 +90,8 @@ def run_task(task, root, resume=False):
                 return previous
         elif result_path.exists():
             raise FileExistsError(f'{result_path} exists; use --resume or a new output directory')
+        if progress:
+            print(f'{task["hex"]}: starting k={k}', flush=True)
         # Erase only stale outputs owned by this task before a retry.
         for name in ('result.json', 'witness.json', 'witness.aag', 'proof.drat', 'proof.lrat', 'proof-check.json', 'proof-check.log', 'model.json', 'solver.stdout', 'solver.stderr'):
             (directory / name).unlink(missing_ok=True)
@@ -100,9 +106,9 @@ def run_task(task, root, resume=False):
                       encode_wall_seconds=encode_seconds, instance=instance.metadata(),
                       timestamp_utc=__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat())
         try:
-            solved = (solver.embedded(instance, task.get('solver', 'cadical195'), directory)
+            solved = (solver.embedded(instance, task.get('solver', 'cadical195'), directory, timeout)
                       if backend == 'pysat' else
-                      solver.external(task['solver_argv'], directory, task.get('timeout')))
+                      solver.external(task['solver_argv'], directory, timeout))
             model = solved.pop('model')
             dump(directory / 'model.json', model)
             result.update(solved)
@@ -130,23 +136,38 @@ def run_task(task, root, resume=False):
         lock.unlink(missing_ok=True)
 
 
+def minimum_step(n, f, k, root, options, backend='pysat', solver_name='cadical195',
+                 solver_argv=None, timeout=None, resume=False, *, progress=False):
+    """Solve one gate count and return a minimum-search step."""
+    task = dict(n=n, hex=hex_tt(n, f), k=k, options=asdict(options), backend=backend)
+    if backend == 'pysat':
+        task['solver'] = solver_name
+    else:
+        task['solver_argv'] = solver_argv
+    if timeout is not None:
+        task['timeout'] = timeout
+    try:
+        record = run_task(task, root, resume, progress=progress)
+    except (ValueError, OSError, RuntimeError, ImportError) as exc:
+        return dict(n=n, hex=hex_tt(n, f), status='INCOMPLETE', minimum=None,
+                    runs=[dict(k=k, status='ERROR', run_id=None)],
+                    error=f'{type(exc).__name__}: {exc}')
+    status = {'SAT': 'EXACT', 'UNSAT': 'CONTINUE'}.get(record['status'], 'INCOMPLETE')
+    if record['status'] == 'SAT' and record['circuit']['reachable_gates'] != k:
+        raise ValueError('Smaller witness contradicts previous UNSAT sizes')
+    return dict(n=n, hex=hex_tt(n, f), status=status,
+                minimum=k if status == 'EXACT' else None,
+                runs=[dict(k=k, status=record['status'], run_id=record['run_id'])])
+
+
 def minimum(n, f, max_k, root, options, backend='pysat', solver_name='cadical195',
-            solver_argv=None, timeout=None, resume=False):
+            solver_argv=None, timeout=None, resume=False, *, progress=False):
     """Try ALL lower sizes. An unknown/error interrupts exactness; never skipped."""
     runs = []
     for k in range(max_k + 1):
-        task = dict(n=n, hex=hex_tt(n, f), k=k, options=asdict(options), backend=backend)
-        if backend == 'pysat':
-            task['solver'] = solver_name
-        else:
-            task.update(solver_argv=solver_argv, timeout=timeout)
-        record = run_task(task, root, resume)
-        runs.append(dict(k=k, status=record['status'], run_id=record['run_id']))
-        if record['status'] == 'SAT':
-            actual = record['circuit']['reachable_gates']
-            if actual != k:
-                raise ValueError('Smaller witness contradicts previous UNSAT sizes')
-            return dict(n=n, hex=hex_tt(n, f), status='EXACT', minimum=k, runs=runs)
-        if record['status'] != 'UNSAT':
-            return dict(n=n, hex=hex_tt(n, f), status='INCOMPLETE', minimum=None, runs=runs)
+        row = minimum_step(n, f, k, root, options, backend, solver_name,
+                           solver_argv, timeout, resume, progress=progress)
+        runs.extend(row['runs'])
+        if row['status'] != 'CONTINUE':
+            return dict(row, runs=runs)
     return dict(n=n, hex=hex_tt(n, f), status='ABOVE_LIMIT', minimum=None, runs=runs)

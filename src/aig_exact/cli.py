@@ -1,6 +1,8 @@
 import argparse
 import json
-from concurrent.futures import ProcessPoolExecutor, as_completed
+import math
+from collections import deque
+from concurrent.futures import ProcessPoolExecutor, wait, FIRST_COMPLETED
 from contextlib import closing
 from dataclasses import asdict, fields
 from functools import partial
@@ -8,7 +10,7 @@ from multiprocessing import get_context
 from pathlib import Path
 from . import boolean, circuit, solver, analysis
 from .encode import Instance, Options
-from .experiment import dump, digest, run_task, minimum
+from .experiment import dump, digest, run_task, minimum_step
 
 
 EXPECTED_CLASSES = {0: 1, 1: 2, 2: 4, 3: 14, 4: 222}
@@ -40,36 +42,55 @@ def add_solver(p):
     p.add_argument('--backend', choices=['pysat', 'external'], default='pysat')
     p.add_argument('--solver', default='cadical195', help='PySAT solver name')
     p.add_argument('--solver-argv', type=json.loads, help='JSON argv array; placeholders {cnf}, {proof}')
-    p.add_argument('--timeout', type=float, help='External backend hard timeout in seconds')
+    p.add_argument('--timeout', type=float, help='Hard timeout in seconds per SAT instance')
     p.add_argument('--resume', action='store_true')
 
 
 def task_from(args, k=None):
     task = dict(n=args.n, hex=boolean.hex_tt(args.n, int(args.hex, 16)),
                 k=args.k if k is None else k, options=asdict(options(args)), backend=args.backend)
+    if args.timeout is not None:
+        if not math.isfinite(args.timeout) or args.timeout <= 0:
+            raise ValueError('--timeout must be a positive, finite number of seconds')
+        task['timeout'] = args.timeout
     if args.backend == 'external':
         if not args.solver_argv or not isinstance(args.solver_argv, list) or not all(isinstance(s, str) for s in args.solver_argv):
             raise ValueError('--solver-argv must be a nonempty JSON array of strings')
-        task.update(solver_argv=args.solver_argv, timeout=args.timeout)
+        task['solver_argv'] = args.solver_argv
     else:
-        if args.timeout is not None:
-            raise ValueError('--timeout requires --backend external')
         task['solver'] = args.solver
     return task
 
 
-def minimum_rows(values, search, workers):
-    if workers == 1 or len(values) < 2:
-        for index, f in enumerate(values):
-            yield index, search(f=f)
+def minimum_rows(values, search, workers, max_gates):
+    """Queue one budget per function, returning completed functions immediately."""
+    if not values:
         return
 
     pool = ProcessPoolExecutor(max_workers=min(workers, len(values)),
                                mp_context=get_context('spawn'))
+    queued = deque((index, 0) for index in range(len(values)))
+    runs = [[] for _ in values]
+    pending = {}
     try:
-        pending = {pool.submit(search, f=f): index for index, f in enumerate(values)}
-        for future in as_completed(pending):
-            yield pending[future], future.result()
+        while queued or pending:
+            while queued and len(pending) < workers:
+                index, k = queued.popleft()
+                pending[pool.submit(search, f=values[index], k=k)] = (index, k)
+            done, _ = wait(pending, timeout=30, return_when=FIRST_COMPLETED)
+            if not done:
+                active = ', '.join(f'{values[i]:x}@k={k}' for i, k in pending.values())
+                print(f'Active: {active}; queued checks: {len(queued)}', flush=True)
+            for future in done:
+                index, k = pending.pop(future)
+                row = future.result()
+                runs[index].extend(row['runs'])
+                if row['status'] == 'CONTINUE' and k < max_gates:
+                    queued.append((index, k + 1))
+                    continue
+                if row['status'] == 'CONTINUE':
+                    row['status'] = 'ABOVE_LIMIT'
+                yield index, dict(row, runs=runs[index])
     finally:
         pool.shutdown(cancel_futures=True)
 
@@ -111,6 +132,7 @@ def main():
     rep.add_argument('--out', type=Path, required=True)
     add_options(rep)
     add_solver(rep)
+    rep.set_defaults(timeout=300)
     manifest = sub.add_parser('manifest', help='Materialize a matrix without running it')
     manifest.add_argument('--minima', type=Path, required=True)
     manifest.add_argument('--config', type=Path, required=True)
@@ -194,6 +216,8 @@ def dispatch(a):
         workers = getattr(a, 'workers', 1)
         if workers < 1:
             raise ValueError('--workers must be at least 1')
+        if a.max_gates < 0:
+            raise ValueError('--max-gates must be nonnegative')
         for f in values:
             boolean.validate(a.n, f)
         coverage = False
@@ -212,18 +236,31 @@ def dispatch(a):
         # Validate solver arguments before the first task.
         a.hex = boolean.hex_tt(a.n, values[0]) if values else '0'
         template = task_from(a, k=0)
-        search = partial(minimum, n=a.n, max_k=a.max_gates, root=a.out / 'runs',
+        search = partial(minimum_step, n=a.n, root=a.out / 'runs',
                          options=options(a), backend=template['backend'],
                          solver_name=template.get('solver', 'cadical195'),
                          solver_argv=template.get('solver_argv'),
-                         timeout=template.get('timeout'), resume=a.resume)
+                         timeout=template.get('timeout'), resume=a.resume,
+                         progress=cmd == 'reproduce')
         rows = [None] * len(values)
-        with closing(minimum_rows(values, search, workers)) as completed:
+        timed_out = {}
+        if cmd == 'reproduce':
+            dump(a.out / 'timed-out.json', dict(n=a.n, functions=[]))
+        with closing(minimum_rows(values, search, workers, a.max_gates)) as completed:
             for index, row in completed:
                 rows[index] = row
                 report['functions'] = [r for r in rows if r is not None]
                 dump(a.out / 'minima.json', report)
-                print(f'{row["hex"]}: {row["status"]}, minimum={row["minimum"]}', flush=True)
+                if cmd == 'reproduce' and row['runs'] and row['runs'][-1]['status'] == 'TIMEOUT':
+                    k = row['runs'][-1]['k']
+                    timed_out[index] = dict(hex=row['hex'], k=k)
+                    dump(a.out / 'timed-out.json',
+                         dict(n=a.n, functions=[timed_out[i] for i in sorted(timed_out)]))
+                    print(f'{row["hex"]}: TIMEOUT at k={k}', flush=True)
+                else:
+                    print(f'{row["hex"]}: {row["status"]}, minimum={row["minimum"]}', flush=True)
+                    if 'error' in row:
+                        print(row['error'], flush=True)
         report['complete'] = bool(values) and all(r['status'] == 'EXACT' for r in report['functions'])
         report['observed_maximum'] = max((r['minimum'] for r in report['functions'] if r['status'] == 'EXACT'), default=None)
         expected = getattr(a, 'expect_max', None)

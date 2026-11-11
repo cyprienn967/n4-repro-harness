@@ -107,7 +107,7 @@ Then find every exact minimum:
 ```bash
 aig-exact reproduce -n 4 --functions data/npn4.txt \
   --max-gates 10 --expect-max 10 --encoding ssv \
-  --workers 8 --out results/reproduction --resume
+  --workers 8 --timeout 300 --out results/reproduction --resume
 ```
 
 This validates that your input contains one representative of every NPN class,
@@ -119,9 +119,33 @@ returns a nonzero exit code for an incomplete campaign or a failed expected
 maximum. `--allow-subset` permits pilot runs, but cannot establish the universal
 L(4) claim.
 
-`--workers` defaults to 1. With multiple workers, each process searches a
-different function and still tries that function's gate counts in order. The
-report keeps the input order even when functions finish out of order.
+`--workers` defaults to 1. Workers take individual gate-count checks from a
+shared queue. After an UNSAT result, that function's next check joins the
+back of the queue. Each function's gate counts are still tried in order.
+Finished functions are saved immediately, and the report keeps the input order.
+The terminal logs each new SAT instance as it starts, including the function
+and gate count. Every 30 seconds without a completion, it lists active checks
+and the number waiting.
+
+`reproduce` defaults to `--timeout 300`, giving each SAT instance five minutes for the
+solver process, after CNF generation. If an instance times out, the worker
+moves on to another function. The timed-out truth tables and gate counts
+from the current run are saved to `results/reproduction/timed-out.json`.
+These functions remain incomplete and can be retried after the campaign.
+To retry only the saved functions with a longer limit, use a separate report
+directory so the full campaign report is preserved.
+
+```bash
+aig-exact reproduce -n 4 \
+  --functions results/reproduction/timed-out.json --allow-subset \
+  --max-gates 10 --encoding ssv --workers 8 --timeout 1800 \
+  --out results/retry --resume
+```
+
+To retry and keep one full report while reusing completed gate checks, rerun
+the original command with its original function list and output directory,
+`--resume`, and a larger timeout.
+Completed SAT and UNSAT results are reused when only the time limit changes.
 
 `claim_verified` in this report means the solver-based reproduction completed
 with validated witnesses and full coverage. It does **not** mean the UNSAT
@@ -203,9 +227,9 @@ with the existing constraints.
 
 ## 5. External solvers, timeouts and proof certificates
 
-Embedded PySAT gives structured decisions/conflicts/propagations/restarts, but
-this harness does not produce certificates or hard timeouts through it. Use an
-external solver for proof-quality campaigns and bounded runtimes.
+PySAT gives structured decisions/conflicts/propagations/restarts and runs in
+a separate process when `--timeout` is set. Use an external solver to produce
+proof certificates.
 
 Build/install the upstream tools locally:
 
