@@ -31,6 +31,9 @@ def options(args):
 
 
 def add_options(p):
+    p.add_argument('--model', choices=['aig', 'paper'], default='aig',
+                   help='aig counts AND gates; paper counts arbitrary two-input operators')
+    p.add_argument('--symmetries', default='', help='Paper Section III-D letters, e.g. NARCOS or NARCS')
     p.add_argument('--encoding', choices=['ssv', 'msv', 'ditt'], default='ssv')
     p.add_argument('--cardinality', choices=['sequential', 'pairwise'], default='sequential')
     p.add_argument('--fanin-order', action=argparse.BooleanOptionalAction, default=True)
@@ -182,6 +185,10 @@ def dispatch(a):
         minima = None
         if a.cofactor_minima:
             records = json.loads(a.cofactor_minima.read_text())['functions']
+            models = {row.get('model', 'aig') for row in records}
+            if len(models) != 1:
+                raise ValueError('Cofactor minima must use one circuit model')
+            cofactor_model = models.pop()
             minima = {}
             for row in records:
                 if row['n'] != a.n - 1 or row['status'] != 'EXACT':
@@ -197,6 +204,7 @@ def dispatch(a):
                         if key not in minima:
                             raise ValueError('Cofactor class missing from minima file')
                         co['minimum'] = minima[key]
+                        co['model'] = cofactor_model
                 stream.write(json.dumps(row, sort_keys=True) + '\n')
         print(f'Wrote features for {len(values)} functions')
     elif cmd == 'emit':
@@ -231,7 +239,7 @@ def dispatch(a):
         if workers > 1 and len(set(values)) != len(values):
             raise ValueError('Parallel reproduction requires distinct truth tables')
         a.out.mkdir(parents=True, exist_ok=True)
-        report = dict(n=a.n, full_npn_coverage=coverage, functions=[], complete=False,
+        report = dict(n=a.n, model=a.model, full_npn_coverage=coverage, functions=[], complete=False,
                       observed_maximum=None, claim_verified=False)
         # Validate solver arguments before the first task.
         a.hex = boolean.hex_tt(a.n, values[0]) if values else '0'
@@ -282,6 +290,8 @@ def dispatch(a):
                     continue
                 for variant in config['variants']:
                     opt = Options(**variant.get('options', {}))
+                    if opt.model != row.get('model', 'aig'):
+                        raise ValueError('Manifest model differs from minima model; synthesize minima in the same model first')
                     for backend in config['solvers']:
                         task = dict(n=row['n'], hex=row['hex'], k=k, options=asdict(opt), **backend)
                         task['label'] = variant['name'] + ':' + backend.get('label', 'solver')

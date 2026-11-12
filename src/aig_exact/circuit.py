@@ -6,9 +6,20 @@ def validate(circuit):
     n = circuit['n']
     if not isinstance(n, int) or not 0 <= n <= 5:
         raise ValueError('Invalid input count')
+    model = circuit.get('model', 'aig')
+    if model not in ('aig', 'paper'):
+        raise ValueError('Unknown witness model')
+    if model == 'paper':
+        operators = circuit.get('operators', [])
+        if len(operators) != len(circuit['gates']) or any(
+            not isinstance(op, int) or not 0 <= op < 16 or op & 1 for op in operators
+        ):
+            raise ValueError('Paper witness requires one normal operator truth table per step')
     for i, pair in enumerate(circuit['gates']):
         if len(pair) != 2 or any(not isinstance(a, int) or not 0 <= a < 2 * (n + i + 1) for a in pair):
             raise ValueError('Non-topological or invalid gate')
+        if model == 'paper' and (not 0 < pair[0] < pair[1] or any(a & 1 for a in pair)):
+            raise ValueError('Paper operands must be distinct, increasing, unsigned signals')
     if not isinstance(circuit['output'], int) or not 0 <= circuit['output'] < 2 * (n + len(circuit['gates']) + 1):
         raise ValueError('Invalid output')
 
@@ -21,8 +32,12 @@ def simulate(circuit):
         signals = [False] + [bool((assignment >> i) & 1) for i in range(n)]
         def read(lit):
             return signals[lit // 2] ^ bool(lit & 1)
-        for a, b in circuit['gates']:
-            signals.append(read(a) and read(b))
+        for gate, (a, b) in enumerate(circuit['gates']):
+            if circuit.get('model', 'aig') == 'paper':
+                index = 2 * int(read(a)) + int(read(b))
+                signals.append(bool((circuit['operators'][gate] >> index) & 1))
+            else:
+                signals.append(read(a) and read(b))
         result |= int(read(circuit['output'])) << assignment
     return result
 
@@ -52,10 +67,15 @@ def compact(circuit):
         if i in live:
             gates.append([remap(a) for a in pair])
             mapping[i] = n + len(gates)
-    return dict(n=n, gates=gates, output=remap(circuit['output']))
+    result = dict(n=n, gates=gates, output=remap(circuit['output']))
+    if circuit.get('model', 'aig') == 'paper':
+        result.update(model='paper', operators=[op for i, op in enumerate(circuit['operators'], n + 1) if i in live])
+    return result
 
 
 def aag(circuit):
+    if circuit.get('model', 'aig') != 'aig':
+        raise ValueError('AAG export requires an AIG witness; paper operators are stored in witness.json')
     c = compact(circuit)
     n, gates = c['n'], c['gates']
     lines = [f'aag {n + len(gates)} {n} 0 1 {len(gates)}']
@@ -71,6 +91,8 @@ def restricted(circuit, variable, value):
     The input remains declared (unused). Gate loss is a property of this witness,
     not a universal elimination theorem about every circuit for the function.
     """
+    if circuit.get('model', 'aig') != 'aig':
+        raise ValueError('AIG restriction simplification requires an AIG witness')
     n = circuit['n']
     mapping = {i: 2 * i for i in range(n + 1)}
     mapping[variable + 1] = value
@@ -109,17 +131,20 @@ def analyze(circuit, automorphisms=False):
                   restrictions=[dict(variable=i, value=b,
                                      remaining_gates=len(restricted(c, i, b)['gates']),
                                      eliminated_gates=len(c['gates']) - len(restricted(c, i, b)['gates']))
-                                for i in range(n) for b in (0, 1)])
+                                for i in range(n) for b in (0, 1)]
+                               if c.get('model', 'aig') == 'aig' else [])
+    if c.get('model', 'aig') == 'paper':
+        result.update(model='paper', operators=c['operators'], restriction_analysis='unavailable')
     if automorphisms:
         import networkx as nx
         graph = nx.DiGraph()
         for i in range(n + 1):
             graph.add_node(('s', i), color=f'input:{i}')
         for i, pair in enumerate(c['gates'], n + 1):
-            graph.add_node(('s', i), color='gate')
+            graph.add_node(('s', i), color=f'operator:{c["operators"][i - n - 1]}' if c.get('model') == 'paper' else 'gate')
             for port, lit in enumerate(pair):
                 edge = ('wire', i, port)
-                graph.add_node(edge, color=f'phase:{lit & 1}')
+                graph.add_node(edge, color=f'port:{port}' if c.get('model') == 'paper' else f'phase:{lit & 1}')
                 graph.add_edge(('s', lit // 2), edge)
                 graph.add_edge(edge, ('s', i))
         graph.add_node('output', color=f'output:{c["output"] & 1}')

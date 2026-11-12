@@ -3,14 +3,16 @@
 Exact synthesis of small single-output Boolean circuits, plus an experiment
 harness for comparing encodings, symmetry breaking, and function structure.
 
-**Status:** source implementation prepared without running it. No synthesis,
-NPN enumeration, tests, solver builds, or benchmarks were run during creation.
-There are no bundled results and no automatic GitHub Actions workflows. Run the
-small checks below locally before trusting a full campaign. The target is to
-reproduce the known **L(4) = 10**, not to claim that this repository has already
-reproduced it.
+Two circuit models are available. The default `--model aig` preserves the
+original AND/free-NOT experiments. **`--model paper` implements the paper's
+SSV/MSV/DITT encodings with arbitrary normal binary operators and N/A/R/C/O/S
+symmetry breaking.** These models count different gates: XOR costs 3 in AIG
+mode and 1 in paper mode. See [the paper alignment notes](docs/paper-encodings.md)
+for the clauses, scope, commands, and validation.
 
-## What is being counted?
+No complete four-input campaign or proof-certified maximum is bundled.
+
+## What is being counted in the default AIG model?
 
 - Two-input AND: one gate.
 - NOT/complemented wires: free.
@@ -63,7 +65,8 @@ The Python package itself needs no dependencies to generate CNF or features.
 
 ## 2. Run small correctness checks first
 
-These are commands for you to run; they have not been executed here.
+Run the correctness checks locally before a campaign. The paper-specific tests
+include independent enumeration and all 64 symmetry combinations.
 
 ```bash
 python -m unittest discover -s tests -v
@@ -175,7 +178,7 @@ hard-code which classes must be hardest. Solving at a single budget does not
 by itself determine an exact minimum unless an upper/lower argument supplies
 the other side.
 
-### Encodings
+### Legacy AIG encodings (`--model aig`)
 
 These are original **AIG-specialized adaptations** of the selection ideas in
 the exact-synthesis literature. They are not Percy's source code and do not
@@ -193,7 +196,7 @@ All encodings include all truth-table rows, free signed edges and explicit
 output selection. No CEGAR or arbitrary two-input operators are mixed into the
 comparison. No binary-index encoding is implemented.
 
-### Symmetry/pruning toggles
+### Legacy AIG symmetry/pruning toggles
 
 | Flag | Default | Effect and scope |
 | --- | --- | --- |
@@ -220,9 +223,9 @@ the default at-most formulation.
 
 The target breaker is deliberately modest and transparent: it does not enforce
 lexicographic canonicality of the entire circuit, assume that an optimal circuit
-is symmetric, or claim complete symmetry elimination. No gate-order/colex
-breaker, canonical augmentation, topology enumeration or double-coset method is
-implemented. These need separate soundness arguments before combining them
+is symmetric, or claim complete symmetry elimination. The AIG model has no gate-order/colex breaker. Paper mode implements C and O;
+canonical augmentation, topology enumeration and double-coset methods remain
+unimplemented. These need separate soundness arguments before combining them
 with the existing constraints.
 
 ## 5. External solvers, timeouts and proof certificates
@@ -322,7 +325,9 @@ aig-exact manifest --minima results/reproduction/minima.json \
 
 Each variant has a name and an `options` object using Python-style keys:
 `encoding`, `cardinality`, `fanin_order`, `no_trivial`, `no_duplicates`,
-`all_used`, `target_symmetry`. A solver row uses either `backend=pysat` plus
+`all_used`, `target_symmetry`. Paper variants instead set `model: "paper"`
+and `symmetries: "NARCOS"` (or a subset). `configs/paper-encodings.json` contains
+all 192 encoding/symmetry combinations and requires paper-model minima. A solver row uses either `backend=pysat` plus
 `solver`, or `backend=external` plus `solver_argv` and `timeout`. Seed changes
 belong in external argv, e.g. `--seed=1`. Labels distinguish repeated campaigns.
 There is no hidden random seed in NPN enumeration or CNF construction.
@@ -358,7 +363,7 @@ results/<campaign>/<RUN_ID>/
   solver.stdout       raw solver output
   solver.stderr       external solver diagnostics, when applicable
   witness.json        compact independently verified SAT circuit
-  witness.aag         ASCII AIGER representation
+  witness.aag         ASCII AIGER representation (AIG model only)
   proof.drat          external proof, when requested (may be binary DRAT)
   proof-check.json    independent checker verdict and hashes, after check-proof
   result.json         statistics, status, hashes and provenance
@@ -482,7 +487,7 @@ cross-checks and extension points:
 - [OEIS A057241](https://oeis.org/A057241): AND/free-NOT worst-case complexity;
   [Schroeppel's notes](https://oeis.org/A057241/a057241.txt).
 - [OEIS A000370](https://oeis.org/A000370): NPN class counts.
-- [Haaswijk et al., SAT-Based Exact Synthesis](https://people.eecs.berkeley.edu/~alanmi/publications/2020/tcad20_exact.pdf): selection encodings, symmetry and topology experiments. Our restricted AIG encodings are adaptations.
+- [Haaswijk et al., SAT-Based Exact Synthesis](https://people.eecs.berkeley.edu/~alanmi/publications/2020/tcad20_exact.pdf): selection encodings, symmetry and topology experiments. Paper mode follows Sections III-A–D; AIG mode retains the original adaptations.
 - [Percy](https://github.com/whaaswijk/percy), [Kitty](https://github.com/lsils/kitty),
   [Mockturtle](https://github.com/lsils/mockturtle).
 - [Berkeley ABC](https://github.com/berkeley-abc/abc): independent synthesis oracle.

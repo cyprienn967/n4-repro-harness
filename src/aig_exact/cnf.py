@@ -43,6 +43,28 @@ class CNF:
         self.add(*(-g for g in guards), -a, b)
         self.add(*(-g for g in guards), a, -b)
 
+    def exactly_two(self, lits):
+        """Truncated unary prefix counter, tracking thresholds 1, 2, and 3.
+
+        current[j] iff at least j of the inputs seen so far are true.
+        Final thresholds 2=true and 3=false enforce exactly two.
+        """
+        previous = [self.true, -self.true, -self.true, -self.true]
+        for index, lit in enumerate(lits):
+            current = [self.true]
+            for threshold in range(1, 4):
+                total = self.var(f'ubc:{len(self.names)}:{index}:{threshold}')
+                same, below = previous[threshold], previous[threshold - 1]
+                # total <-> same OR (lit AND below)
+                self.add(-same, total)
+                self.add(-lit, -below, total)
+                self.add(-total, same, lit)
+                self.add(-total, same, below)
+                current.append(total)
+            previous = current
+        self.add(previous[2])
+        self.add(-previous[3])
+
     def and_gate(self, z, a, b, guards=()):
         prefix = [-g for g in guards]
         self.add(*prefix, -z, a)

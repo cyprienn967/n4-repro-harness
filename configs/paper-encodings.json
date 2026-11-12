@@ -1,0 +1,1551 @@
+{
+  "deltas": [
+    -1,
+    0
+  ],
+  "variants": [
+    {
+      "name": "paper-ssv-baseline",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": ""
+      }
+    },
+    {
+      "name": "paper-ssv-N",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "N"
+      }
+    },
+    {
+      "name": "paper-ssv-A",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "A"
+      }
+    },
+    {
+      "name": "paper-ssv-NA",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NA"
+      }
+    },
+    {
+      "name": "paper-ssv-R",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "R"
+      }
+    },
+    {
+      "name": "paper-ssv-NR",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NR"
+      }
+    },
+    {
+      "name": "paper-ssv-AR",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "AR"
+      }
+    },
+    {
+      "name": "paper-ssv-NAR",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NAR"
+      }
+    },
+    {
+      "name": "paper-ssv-C",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "C"
+      }
+    },
+    {
+      "name": "paper-ssv-NC",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NC"
+      }
+    },
+    {
+      "name": "paper-ssv-AC",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "AC"
+      }
+    },
+    {
+      "name": "paper-ssv-NAC",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NAC"
+      }
+    },
+    {
+      "name": "paper-ssv-RC",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "RC"
+      }
+    },
+    {
+      "name": "paper-ssv-NRC",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NRC"
+      }
+    },
+    {
+      "name": "paper-ssv-ARC",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "ARC"
+      }
+    },
+    {
+      "name": "paper-ssv-NARC",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NARC"
+      }
+    },
+    {
+      "name": "paper-ssv-O",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "O"
+      }
+    },
+    {
+      "name": "paper-ssv-NO",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NO"
+      }
+    },
+    {
+      "name": "paper-ssv-AO",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "AO"
+      }
+    },
+    {
+      "name": "paper-ssv-NAO",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NAO"
+      }
+    },
+    {
+      "name": "paper-ssv-RO",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "RO"
+      }
+    },
+    {
+      "name": "paper-ssv-NRO",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NRO"
+      }
+    },
+    {
+      "name": "paper-ssv-ARO",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "ARO"
+      }
+    },
+    {
+      "name": "paper-ssv-NARO",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NARO"
+      }
+    },
+    {
+      "name": "paper-ssv-CO",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "CO"
+      }
+    },
+    {
+      "name": "paper-ssv-NCO",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NCO"
+      }
+    },
+    {
+      "name": "paper-ssv-ACO",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "ACO"
+      }
+    },
+    {
+      "name": "paper-ssv-NACO",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NACO"
+      }
+    },
+    {
+      "name": "paper-ssv-RCO",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "RCO"
+      }
+    },
+    {
+      "name": "paper-ssv-NRCO",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NRCO"
+      }
+    },
+    {
+      "name": "paper-ssv-ARCO",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "ARCO"
+      }
+    },
+    {
+      "name": "paper-ssv-NARCO",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NARCO"
+      }
+    },
+    {
+      "name": "paper-ssv-S",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "S"
+      }
+    },
+    {
+      "name": "paper-ssv-NS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NS"
+      }
+    },
+    {
+      "name": "paper-ssv-AS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "AS"
+      }
+    },
+    {
+      "name": "paper-ssv-NAS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NAS"
+      }
+    },
+    {
+      "name": "paper-ssv-RS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "RS"
+      }
+    },
+    {
+      "name": "paper-ssv-NRS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NRS"
+      }
+    },
+    {
+      "name": "paper-ssv-ARS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "ARS"
+      }
+    },
+    {
+      "name": "paper-ssv-NARS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NARS"
+      }
+    },
+    {
+      "name": "paper-ssv-CS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "CS"
+      }
+    },
+    {
+      "name": "paper-ssv-NCS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NCS"
+      }
+    },
+    {
+      "name": "paper-ssv-ACS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "ACS"
+      }
+    },
+    {
+      "name": "paper-ssv-NACS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NACS"
+      }
+    },
+    {
+      "name": "paper-ssv-RCS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "RCS"
+      }
+    },
+    {
+      "name": "paper-ssv-NRCS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NRCS"
+      }
+    },
+    {
+      "name": "paper-ssv-ARCS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "ARCS"
+      }
+    },
+    {
+      "name": "paper-ssv-NARCS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NARCS"
+      }
+    },
+    {
+      "name": "paper-ssv-OS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "OS"
+      }
+    },
+    {
+      "name": "paper-ssv-NOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NOS"
+      }
+    },
+    {
+      "name": "paper-ssv-AOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "AOS"
+      }
+    },
+    {
+      "name": "paper-ssv-NAOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NAOS"
+      }
+    },
+    {
+      "name": "paper-ssv-ROS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "ROS"
+      }
+    },
+    {
+      "name": "paper-ssv-NROS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NROS"
+      }
+    },
+    {
+      "name": "paper-ssv-AROS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "AROS"
+      }
+    },
+    {
+      "name": "paper-ssv-NAROS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NAROS"
+      }
+    },
+    {
+      "name": "paper-ssv-COS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "COS"
+      }
+    },
+    {
+      "name": "paper-ssv-NCOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NCOS"
+      }
+    },
+    {
+      "name": "paper-ssv-ACOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "ACOS"
+      }
+    },
+    {
+      "name": "paper-ssv-NACOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NACOS"
+      }
+    },
+    {
+      "name": "paper-ssv-RCOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "RCOS"
+      }
+    },
+    {
+      "name": "paper-ssv-NRCOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NRCOS"
+      }
+    },
+    {
+      "name": "paper-ssv-ARCOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "ARCOS"
+      }
+    },
+    {
+      "name": "paper-ssv-NARCOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ssv",
+        "symmetries": "NARCOS"
+      }
+    },
+    {
+      "name": "paper-msv-baseline",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": ""
+      }
+    },
+    {
+      "name": "paper-msv-N",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "N"
+      }
+    },
+    {
+      "name": "paper-msv-A",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "A"
+      }
+    },
+    {
+      "name": "paper-msv-NA",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NA"
+      }
+    },
+    {
+      "name": "paper-msv-R",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "R"
+      }
+    },
+    {
+      "name": "paper-msv-NR",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NR"
+      }
+    },
+    {
+      "name": "paper-msv-AR",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "AR"
+      }
+    },
+    {
+      "name": "paper-msv-NAR",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NAR"
+      }
+    },
+    {
+      "name": "paper-msv-C",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "C"
+      }
+    },
+    {
+      "name": "paper-msv-NC",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NC"
+      }
+    },
+    {
+      "name": "paper-msv-AC",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "AC"
+      }
+    },
+    {
+      "name": "paper-msv-NAC",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NAC"
+      }
+    },
+    {
+      "name": "paper-msv-RC",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "RC"
+      }
+    },
+    {
+      "name": "paper-msv-NRC",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NRC"
+      }
+    },
+    {
+      "name": "paper-msv-ARC",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "ARC"
+      }
+    },
+    {
+      "name": "paper-msv-NARC",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NARC"
+      }
+    },
+    {
+      "name": "paper-msv-O",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "O"
+      }
+    },
+    {
+      "name": "paper-msv-NO",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NO"
+      }
+    },
+    {
+      "name": "paper-msv-AO",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "AO"
+      }
+    },
+    {
+      "name": "paper-msv-NAO",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NAO"
+      }
+    },
+    {
+      "name": "paper-msv-RO",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "RO"
+      }
+    },
+    {
+      "name": "paper-msv-NRO",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NRO"
+      }
+    },
+    {
+      "name": "paper-msv-ARO",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "ARO"
+      }
+    },
+    {
+      "name": "paper-msv-NARO",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NARO"
+      }
+    },
+    {
+      "name": "paper-msv-CO",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "CO"
+      }
+    },
+    {
+      "name": "paper-msv-NCO",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NCO"
+      }
+    },
+    {
+      "name": "paper-msv-ACO",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "ACO"
+      }
+    },
+    {
+      "name": "paper-msv-NACO",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NACO"
+      }
+    },
+    {
+      "name": "paper-msv-RCO",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "RCO"
+      }
+    },
+    {
+      "name": "paper-msv-NRCO",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NRCO"
+      }
+    },
+    {
+      "name": "paper-msv-ARCO",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "ARCO"
+      }
+    },
+    {
+      "name": "paper-msv-NARCO",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NARCO"
+      }
+    },
+    {
+      "name": "paper-msv-S",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "S"
+      }
+    },
+    {
+      "name": "paper-msv-NS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NS"
+      }
+    },
+    {
+      "name": "paper-msv-AS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "AS"
+      }
+    },
+    {
+      "name": "paper-msv-NAS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NAS"
+      }
+    },
+    {
+      "name": "paper-msv-RS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "RS"
+      }
+    },
+    {
+      "name": "paper-msv-NRS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NRS"
+      }
+    },
+    {
+      "name": "paper-msv-ARS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "ARS"
+      }
+    },
+    {
+      "name": "paper-msv-NARS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NARS"
+      }
+    },
+    {
+      "name": "paper-msv-CS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "CS"
+      }
+    },
+    {
+      "name": "paper-msv-NCS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NCS"
+      }
+    },
+    {
+      "name": "paper-msv-ACS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "ACS"
+      }
+    },
+    {
+      "name": "paper-msv-NACS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NACS"
+      }
+    },
+    {
+      "name": "paper-msv-RCS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "RCS"
+      }
+    },
+    {
+      "name": "paper-msv-NRCS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NRCS"
+      }
+    },
+    {
+      "name": "paper-msv-ARCS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "ARCS"
+      }
+    },
+    {
+      "name": "paper-msv-NARCS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NARCS"
+      }
+    },
+    {
+      "name": "paper-msv-OS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "OS"
+      }
+    },
+    {
+      "name": "paper-msv-NOS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NOS"
+      }
+    },
+    {
+      "name": "paper-msv-AOS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "AOS"
+      }
+    },
+    {
+      "name": "paper-msv-NAOS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NAOS"
+      }
+    },
+    {
+      "name": "paper-msv-ROS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "ROS"
+      }
+    },
+    {
+      "name": "paper-msv-NROS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NROS"
+      }
+    },
+    {
+      "name": "paper-msv-AROS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "AROS"
+      }
+    },
+    {
+      "name": "paper-msv-NAROS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NAROS"
+      }
+    },
+    {
+      "name": "paper-msv-COS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "COS"
+      }
+    },
+    {
+      "name": "paper-msv-NCOS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NCOS"
+      }
+    },
+    {
+      "name": "paper-msv-ACOS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "ACOS"
+      }
+    },
+    {
+      "name": "paper-msv-NACOS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NACOS"
+      }
+    },
+    {
+      "name": "paper-msv-RCOS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "RCOS"
+      }
+    },
+    {
+      "name": "paper-msv-NRCOS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NRCOS"
+      }
+    },
+    {
+      "name": "paper-msv-ARCOS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "ARCOS"
+      }
+    },
+    {
+      "name": "paper-msv-NARCOS",
+      "options": {
+        "model": "paper",
+        "encoding": "msv",
+        "symmetries": "NARCOS"
+      }
+    },
+    {
+      "name": "paper-ditt-baseline",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": ""
+      }
+    },
+    {
+      "name": "paper-ditt-N",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "N"
+      }
+    },
+    {
+      "name": "paper-ditt-A",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "A"
+      }
+    },
+    {
+      "name": "paper-ditt-NA",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NA"
+      }
+    },
+    {
+      "name": "paper-ditt-R",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "R"
+      }
+    },
+    {
+      "name": "paper-ditt-NR",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NR"
+      }
+    },
+    {
+      "name": "paper-ditt-AR",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "AR"
+      }
+    },
+    {
+      "name": "paper-ditt-NAR",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NAR"
+      }
+    },
+    {
+      "name": "paper-ditt-C",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "C"
+      }
+    },
+    {
+      "name": "paper-ditt-NC",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NC"
+      }
+    },
+    {
+      "name": "paper-ditt-AC",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "AC"
+      }
+    },
+    {
+      "name": "paper-ditt-NAC",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NAC"
+      }
+    },
+    {
+      "name": "paper-ditt-RC",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "RC"
+      }
+    },
+    {
+      "name": "paper-ditt-NRC",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NRC"
+      }
+    },
+    {
+      "name": "paper-ditt-ARC",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "ARC"
+      }
+    },
+    {
+      "name": "paper-ditt-NARC",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NARC"
+      }
+    },
+    {
+      "name": "paper-ditt-O",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "O"
+      }
+    },
+    {
+      "name": "paper-ditt-NO",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NO"
+      }
+    },
+    {
+      "name": "paper-ditt-AO",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "AO"
+      }
+    },
+    {
+      "name": "paper-ditt-NAO",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NAO"
+      }
+    },
+    {
+      "name": "paper-ditt-RO",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "RO"
+      }
+    },
+    {
+      "name": "paper-ditt-NRO",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NRO"
+      }
+    },
+    {
+      "name": "paper-ditt-ARO",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "ARO"
+      }
+    },
+    {
+      "name": "paper-ditt-NARO",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NARO"
+      }
+    },
+    {
+      "name": "paper-ditt-CO",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "CO"
+      }
+    },
+    {
+      "name": "paper-ditt-NCO",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NCO"
+      }
+    },
+    {
+      "name": "paper-ditt-ACO",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "ACO"
+      }
+    },
+    {
+      "name": "paper-ditt-NACO",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NACO"
+      }
+    },
+    {
+      "name": "paper-ditt-RCO",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "RCO"
+      }
+    },
+    {
+      "name": "paper-ditt-NRCO",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NRCO"
+      }
+    },
+    {
+      "name": "paper-ditt-ARCO",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "ARCO"
+      }
+    },
+    {
+      "name": "paper-ditt-NARCO",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NARCO"
+      }
+    },
+    {
+      "name": "paper-ditt-S",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "S"
+      }
+    },
+    {
+      "name": "paper-ditt-NS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NS"
+      }
+    },
+    {
+      "name": "paper-ditt-AS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "AS"
+      }
+    },
+    {
+      "name": "paper-ditt-NAS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NAS"
+      }
+    },
+    {
+      "name": "paper-ditt-RS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "RS"
+      }
+    },
+    {
+      "name": "paper-ditt-NRS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NRS"
+      }
+    },
+    {
+      "name": "paper-ditt-ARS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "ARS"
+      }
+    },
+    {
+      "name": "paper-ditt-NARS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NARS"
+      }
+    },
+    {
+      "name": "paper-ditt-CS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "CS"
+      }
+    },
+    {
+      "name": "paper-ditt-NCS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NCS"
+      }
+    },
+    {
+      "name": "paper-ditt-ACS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "ACS"
+      }
+    },
+    {
+      "name": "paper-ditt-NACS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NACS"
+      }
+    },
+    {
+      "name": "paper-ditt-RCS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "RCS"
+      }
+    },
+    {
+      "name": "paper-ditt-NRCS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NRCS"
+      }
+    },
+    {
+      "name": "paper-ditt-ARCS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "ARCS"
+      }
+    },
+    {
+      "name": "paper-ditt-NARCS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NARCS"
+      }
+    },
+    {
+      "name": "paper-ditt-OS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "OS"
+      }
+    },
+    {
+      "name": "paper-ditt-NOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NOS"
+      }
+    },
+    {
+      "name": "paper-ditt-AOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "AOS"
+      }
+    },
+    {
+      "name": "paper-ditt-NAOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NAOS"
+      }
+    },
+    {
+      "name": "paper-ditt-ROS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "ROS"
+      }
+    },
+    {
+      "name": "paper-ditt-NROS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NROS"
+      }
+    },
+    {
+      "name": "paper-ditt-AROS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "AROS"
+      }
+    },
+    {
+      "name": "paper-ditt-NAROS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NAROS"
+      }
+    },
+    {
+      "name": "paper-ditt-COS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "COS"
+      }
+    },
+    {
+      "name": "paper-ditt-NCOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NCOS"
+      }
+    },
+    {
+      "name": "paper-ditt-ACOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "ACOS"
+      }
+    },
+    {
+      "name": "paper-ditt-NACOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NACOS"
+      }
+    },
+    {
+      "name": "paper-ditt-RCOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "RCOS"
+      }
+    },
+    {
+      "name": "paper-ditt-NRCOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NRCOS"
+      }
+    },
+    {
+      "name": "paper-ditt-ARCOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "ARCOS"
+      }
+    },
+    {
+      "name": "paper-ditt-NARCOS",
+      "options": {
+        "model": "paper",
+        "encoding": "ditt",
+        "symmetries": "NARCOS"
+      }
+    }
+  ],
+  "solvers": [
+    {
+      "backend": "pysat",
+      "solver": "cadical195",
+      "label": "cadical195"
+    }
+  ]
+}

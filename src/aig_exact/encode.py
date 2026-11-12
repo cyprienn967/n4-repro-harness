@@ -19,13 +19,33 @@ class Options:
     no_duplicates: bool = False
     all_used: bool = False
     target_symmetry: bool = False
+    model: str = 'aig'
+    symmetries: str = ''
+
+    def __post_init__(self):
+        if self.model not in ('aig', 'paper'):
+            raise ValueError('model must be aig or paper')
+        if self.encoding not in ('ssv', 'msv', 'ditt'):
+            raise ValueError('Unknown encoding')
+        if self.cardinality not in ('sequential', 'pairwise'):
+            raise ValueError('Unknown cardinality encoding')
+        if set(self.symmetries) - set('NARCOS'):
+            raise ValueError('Paper symmetry letters must be drawn from NARCOS')
+        object.__setattr__(self, 'symmetries', ''.join(s for s in 'NARCOS' if s in self.symmetries))
+        if self.model == 'aig' and self.symmetries:
+            raise ValueError('--symmetries requires --model paper; paper constraints assume arbitrary operators')
+        if self.model == 'paper' and (
+            self.no_trivial or self.no_duplicates or self.all_used or self.target_symmetry
+            or not self.fanin_order or self.cardinality != 'sequential'
+        ):
+            raise ValueError('Paper mode uses --symmetries NARCOS and its specified cardinality/operand ordering; remove legacy AIG toggles')
 
     @property
     def minimal_only(self):
         return self.no_trivial or self.no_duplicates or self.all_used
 
 
-class Instance:
+class AIGInstance:
     def __init__(self, n, f, k, options=Options()):
         validate(n, f)
         if k < 0:
@@ -154,3 +174,11 @@ class Instance:
             gates.append(list(selected(pairs)) if pairs is not None else
                          [selected(ports[0]), selected(ports[1])])
         return dict(n=self.n, gates=gates, output=selected(self.output))
+
+
+def Instance(n, f, k, options=Options()):
+    """Build the explicitly selected circuit model, preserving legacy AIG callers."""
+    if options.model == 'paper':
+        from .paper_encode import PaperInstance
+        return PaperInstance(n, f, k, options)
+    return AIGInstance(n, f, k, options)

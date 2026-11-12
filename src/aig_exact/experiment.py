@@ -118,7 +118,8 @@ def run_task(task, root, resume=False, *, progress=False):
                     raise ValueError('Independent simulation rejected SAT witness')
                 witness = circuit.compact(witness)
                 dump(directory / 'witness.json', witness)
-                (directory / 'witness.aag').write_text(circuit.aag(witness))
+                if witness.get('model', 'aig') == 'aig':
+                    (directory / 'witness.aag').write_text(circuit.aag(witness))
                 result['witness_verified'] = True
                 result['circuit'] = circuit.analyze(witness)
         except Exception as exc:
@@ -149,13 +150,13 @@ def minimum_step(n, f, k, root, options, backend='pysat', solver_name='cadical19
     try:
         record = run_task(task, root, resume, progress=progress)
     except (ValueError, OSError, RuntimeError, ImportError) as exc:
-        return dict(n=n, hex=hex_tt(n, f), status='INCOMPLETE', minimum=None,
+        return dict(n=n, model=options.model, hex=hex_tt(n, f), status='INCOMPLETE', minimum=None,
                     runs=[dict(k=k, status='ERROR', run_id=None)],
                     error=f'{type(exc).__name__}: {exc}')
     status = {'SAT': 'EXACT', 'UNSAT': 'CONTINUE'}.get(record['status'], 'INCOMPLETE')
     if record['status'] == 'SAT' and record['circuit']['reachable_gates'] != k:
         raise ValueError('Smaller witness contradicts previous UNSAT sizes')
-    return dict(n=n, hex=hex_tt(n, f), status=status,
+    return dict(n=n, model=options.model, hex=hex_tt(n, f), status=status,
                 minimum=k if status == 'EXACT' else None,
                 runs=[dict(k=k, status=record['status'], run_id=record['run_id'])])
 
@@ -170,4 +171,4 @@ def minimum(n, f, max_k, root, options, backend='pysat', solver_name='cadical195
         runs.extend(row['runs'])
         if row['status'] != 'CONTINUE':
             return dict(row, runs=runs)
-    return dict(n=n, hex=hex_tt(n, f), status='ABOVE_LIMIT', minimum=None, runs=runs)
+    return dict(n=n, model=options.model, hex=hex_tt(n, f), status='ABOVE_LIMIT', minimum=None, runs=runs)

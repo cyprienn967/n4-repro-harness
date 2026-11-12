@@ -25,6 +25,7 @@ def load_results(root):
 def flatten(row):
     task, inst = row['task'], row['instance']
     result = dict(run_id=row['run_id'], n=task['n'], hex=task['hex'], k=task['k'],
+                  model=inst['options'].get('model', 'aig'),
                   encoding=inst['options']['encoding'],
                   options=json.dumps(inst['options'], sort_keys=True),
                   backend=task.get('backend', 'pysat'), solver=task.get('solver', task.get('solver_argv')),
