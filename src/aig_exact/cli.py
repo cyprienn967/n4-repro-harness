@@ -306,8 +306,48 @@ def dispatch(a):
         for i, line in enumerate(a.manifest.read_text().splitlines()):
             if not line.strip() or i % a.shards != a.shard_index:
                 continue
+            
+
             row = run_task(json.loads(line), a.out, a.resume)
-            print(f'{i}: {row["run_id"]} {row["status"]}', flush=True)
+
+            task = row["task"]
+            label = task.get("label", task["options"]["encoding"])
+
+            # Total solver time = initialization + solving
+            init_time = row.get("solver_init_wall_seconds", 0)
+            solve_time = row.get("solve_wall_seconds")
+
+            total_time = (
+                init_time + solve_time
+                if solve_time is not None
+                else None
+            )
+
+            time_str = (
+                f"{total_time:.3f}s"
+                if total_time is not None
+                else "N/A"
+            )
+
+            conflicts = row.get("conflicts")
+            conflicts_str = (
+                f"{conflicts:,}"
+                if conflicts is not None
+                else "N/A"
+            )
+
+            print(
+                f'{i:3d} | '
+                f'f=0x{task["hex"]:<4} | '
+                f'k={task["k"]:<2} | '
+                f'{label:<24} | '
+                f'{row["status"]:<7} | '
+                f'time={time_str:<10} | '
+                f'conflicts={conflicts_str}',
+                flush=True
+            )
+
+
             failed |= row['status'] not in ('SAT', 'UNSAT')
         if failed:
             raise RuntimeError('Some tasks ended incomplete; artifacts retained')

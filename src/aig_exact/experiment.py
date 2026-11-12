@@ -12,7 +12,7 @@ from . import __version__
 from .boolean import hex_tt
 from .encode import Instance, Options
 from . import circuit, solver
-
+import re
 
 def dump(path, value):
     path = Path(path)
@@ -70,7 +70,29 @@ def run_task(task, root, resume=False, *, progress=False):
                     solver_binary=prov.get('solver_binary_sha256'),
                     python_sat=prov.get('python_sat_version'))
     run_id = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()[:24]
-    directory = Path(root) / run_id
+
+
+    # Create a readable name for the experiment
+    label = task.get("label") or (
+        f"{options.encoding}-{task.get('solver', backend)}"
+    )
+
+    safe_label = re.sub(
+        r"[^A-Za-z0-9_-]+", "-", label
+    ).strip("-")
+
+    directory_name = (
+        f"n{n}_"
+        f"f{task['hex']}_"
+        f"k{k}_"
+        f"{options.model}_"
+        f"{safe_label}__"
+        f"{run_id}"
+    )
+
+    directory = Path(root) / directory_name
+
+
     directory.mkdir(parents=True, exist_ok=True)
     # Exclusive ownership prevents two workers corrupting one task directory.
     lock = directory / '.lock'
