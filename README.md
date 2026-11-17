@@ -36,6 +36,7 @@ aig-exact plot --runs results/n4/half-{1,2}/benchmarks --all --out results/n4/pl
 
 # Calculate Boolean and group-theoretic features and analyze the saved results.
 python scripts/analyze_n4.py
+python scripts/plot_n4_features.py
 ```
 
 Plots use conflicts by default. Add `--metric runtime` for wall time. The
@@ -47,6 +48,14 @@ counts are analyzed per configuration and separately at the minimum `k`
 and one gate below it. The CSV reports eligible, recorded and analyzed (`n`)
 sample counts plus timeouts. Correlations are blank for constant or insufficient
 data. These are descriptive associations across the sampled functions.
+
+The plotting script reads those files and writes to
+`results/n4/feature-analysis/plots/`. It plots sensitivity, algebraic degree,
+essential variables, stabilizer sizes, NPN orbit size, and the number of signed
+restriction orbits against minimum circuit size. It also makes two heatmaps of
+Spearman correlations with conflicts, one at `k` and one at `k-1`. For plots of
+individual conflict counts, add `--configuration paper-msv-NARCOS:cadical`
+(repeat for more labels). Zero-conflict solves are visible on the plots.
 
 The proof that all six symmetry breakers preserve a common optimum is in
 [Six symmetry breakers](docs/paper-encodings.md#six-symmetry-breakers).
