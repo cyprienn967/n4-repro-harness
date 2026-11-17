@@ -1,10 +1,9 @@
-# draft!!
-
 #!/usr/bin/env bash
+# Draft n=3 workflow.
 set -euo pipefail
 
 # Run this from the n4-repro-harness repository root.
-# Activate your virtual environment first and install -e '.[sat,analysis]'.
+# Activate your virtual environment first and install -e '.[analysis]'.
 
 mkdir -p data results
 

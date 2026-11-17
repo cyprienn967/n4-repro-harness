@@ -79,10 +79,31 @@ cannot slip through. The C rule and S interpretation agree with
 O uses the paper's strict order; some Percy implementations instead allow
 non-strict operator order. Equality would only retain a redundant duplicate.
 
-Symmetry-constrained queries preserve minimum solutions, but should not be
-interpreted as arbitrary padded at-most-k queries. Use increasing-budget
-`minimum`/`reproduce`; a single high-budget UNSAT answer is not sufficient to
-establish all smaller budgets with these constraints.
+All six constraints can hold in the same size-minimum chain. Among the
+minimum chains for a target, choose the lexicographically least sequence of
+step keys `(larger operand, smaller operand, operator bits)`. This uses the
+operator order `(f11, f10, f01)` from the encoder.
+
+- **N and A.** A constant or a projection can be eliminated by substitution.
+  An unused step can be deleted. Both would give a smaller chain.
+- **R.** If a later step takes an earlier step and one of its operands,
+  compose the two operators into a normal operator on the earlier step's
+  original operands. The earlier step can still serve its other consumers.
+  The replacement has a smaller largest operand at the later step, so the
+  new chain contradicts the choice of the least sequence.
+- **C and O.** If adjacent steps are out of order by their keys, they are
+  independent. A dependency on the preceding step would make the later
+  step's largest operand strictly larger. Swapping independent steps and
+  updating references decreases the sequence. Identical keys are duplicate
+  steps and can be merged, so O can require strict order for equal fanins.
+- **S.** If a symmetric input q appears without p before any use of p,
+  swap the labels p and q throughout the chain, transposing operators when
+  operand order changes. At the first such use the operand pair gets smaller
+  and the earlier step keys stay the same. The target is preserved by the swap.
+
+A single chain therefore witnesses completeness for any subset. The argument
+is for minimum size. Check budgets in increasing order with `minimum` or
+`reproduce`, since constraints such as A can rule out padding at larger sizes.
 
 ## Run and compare
 
@@ -91,15 +112,15 @@ establish all smaller budgets with these constraints.
 aig-exact minimum -n 2 --hex 6 --max-gates 3 --model paper \
   --encoding msv --symmetries NARCOS --out results/paper-xor
 
-# Three-input campaign using the existing worker scheduler.
+# Three-input benchmark with unpruned reference minima.
 aig-exact npn -n 3 --out data/npn3.txt
 aig-exact reproduce -n 3 --functions data/npn3.txt --max-gates 6 \
-  --model paper --encoding ssv --symmetries NARCOS \
+  --model paper --encoding ssv \
   --workers 8 --timeout 300 --out results/paper3 --resume
 
 aig-exact manifest --minima results/paper3/minima.json \
   --config configs/paper-encodings.json --out data/paper-matrix.jsonl
-aig-exact run --manifest data/paper-matrix.jsonl --out results/paper-matrix --resume
+aig-exact run --manifest data/paper-matrix.jsonl --out results/paper-matrix --workers 8 --resume
 aig-exact aggregate --runs results/paper-matrix --out results/paper-tables
 ```
 
@@ -116,7 +137,8 @@ paper witnesses; it is not silently applied to arbitrary operators.
 families, all two-input functions, all three-input functions through three
 steps against an independent integer-truth-table enumerator, all 64 symmetry
 subsets on every three-input NPN minimum (the remaining classes use verified
-four-step witnesses and the exhaustive three-step lower bound), and explicit forbidden
-patterns for every breaker. SAT witnesses are independently simulated before
-and after dead-step compaction. These finite checks are regression evidence,
-not a proof of encoding correctness for arbitrary sizes.
+four-step witnesses and the exhaustive three-step lower bound), and explicit
+forbidden patterns for every breaker in each encoding. The tests run CaDiCaL
+3+ and independently simulate SAT witnesses before and after dead-step
+compaction. Each benchmark job checks its result against the reference minimum
+and records a mismatch as ERROR.

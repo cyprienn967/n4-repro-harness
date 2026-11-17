@@ -12,5 +12,5 @@
     {"name": "ssv-target-symmetry", "options": {"encoding": "ssv", "target_symmetry": true}},
     {"name": "ssv-combined", "options": {"encoding": "ssv", "no_trivial": true, "no_duplicates": true, "all_used": true, "target_symmetry": true}}
   ],
-  "solvers": [{"backend": "pysat", "solver": "cadical195", "label": "cadical195"}]
+  "solvers": [{"backend": "cadical", "timeout": 300, "label": "cadical"}]
 }

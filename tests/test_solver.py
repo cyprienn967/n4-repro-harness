@@ -13,9 +13,14 @@ class SolverTests(unittest.TestCase):
         self.assertEqual(parse_output('s UNKNOWN\n', 0)[0], 'UNKNOWN')
 
     def test_stats(self):
-        stats = parse_stats('c conflicts: 1,200\nc decisions: 3000\nc propagations: 4000\n')
+        stats = parse_stats('c conflicts: 1,200\nc decisions: 3000\nc propagations: 4000\n'
+                            'c   conflicts: 55   0.01 per warmup\n'
+                            'c total process time since initialization: 1.25 seconds\n'
+                            'c maximum resident set size of process: 4.50 MB\n')
         self.assertEqual(stats['conflicts'], 1200)
         self.assertEqual(stats['decisions'], 3000)
+        self.assertEqual(stats['solver_cpu_seconds'], 1.25)
+        self.assertEqual(stats['solver_peak_memory_mb'], 4.5)
 
     def test_empty_cardinality(self):
         c = CNF()

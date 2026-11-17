@@ -9,10 +9,7 @@ from dataclasses import replace
 from aig_exact.encode import Instance, Options
 from aig_exact.circuit import simulate
 
-try:
-    from pysat.solvers import Solver
-except ImportError:
-    Solver = None
+from cadical_helper import CADICAL, solve
 
 
 def reachable_functions(n, k):
@@ -33,15 +30,14 @@ def reachable_functions(n, k):
     return reached
 
 
-@unittest.skipIf(Solver is None, 'Install .[sat] to run encoding checks')
+@unittest.skipIf(CADICAL is None, 'Put CaDiCaL 3+ on PATH to run encoding checks')
 class EncodingTests(unittest.TestCase):
     def sat(self, n, f, k, opt):
         inst = Instance(n, f, k, opt)
-        with Solver(name='cadical195', bootstrap_with=inst.cnf.clauses) as solver:
-            status = solver.solve()
-            if status:
-                self.assertEqual(simulate(inst.decode(solver.get_model())), f)
-            return status
+        status, model = solve(inst.cnf)
+        if status:
+            self.assertEqual(simulate(inst.decode(model)), f)
+        return status
 
     def test_exhaustive_small_budgets(self):
         for k in range(3):

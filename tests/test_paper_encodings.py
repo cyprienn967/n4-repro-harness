@@ -4,10 +4,7 @@ import unittest
 from aig_exact.cnf import CNF
 from aig_exact.encode import Instance, Options
 from aig_exact import circuit
-try:
-    from pysat.solvers import Solver
-except ImportError:
-    Solver = None
+from cadical_helper import CADICAL, solve
 
 
 def enumerated_minima(n, max_gates):
@@ -35,27 +32,25 @@ def enumerated_minima(n, max_gates):
     return minima
 
 
-@unittest.skipIf(Solver is None, 'Install .[sat]')
+@unittest.skipIf(CADICAL is None, 'Put CaDiCaL 3+ on PATH to run encoding checks')
 class PaperEncodings(unittest.TestCase):
     def solve(self, n, f, k, encoding='ssv', symmetries=''):
         instance = Instance(n, f, k, Options(model='paper', encoding=encoding, symmetries=symmetries))
-        with Solver(name='cadical195', bootstrap_with=instance.cnf.clauses) as solver:
-            sat = solver.solve()
-            if sat:
-                witness = instance.decode(solver.get_model())
-                self.assertEqual(circuit.simulate(witness), f)
-                self.assertEqual(circuit.simulate(circuit.compact(witness)), f)
-            return sat
+        sat, model = solve(instance.cnf)
+        if sat:
+            witness = instance.decode(model)
+            self.assertEqual(circuit.simulate(witness), f)
+            self.assertEqual(circuit.simulate(circuit.compact(witness)), f)
+        return sat
 
     def test_unary_counter_all_assignments(self):
         for size in range(7):
             cnf = CNF()
             inputs = [cnf.var(f'in:{i}') for i in range(size)]
             cnf.exactly_two(inputs)
-            with Solver(name='cadical195', bootstrap_with=cnf.clauses) as solver:
-                for bits in itertools.product((0, 1), repeat=size):
-                    self.assertEqual(solver.solve(assumptions=[v if bit else -v for v, bit in zip(inputs, bits)]),
-                                     sum(bits) == 2)
+            for bits in itertools.product((0, 1), repeat=size):
+                assumptions = [v if bit else -v for v, bit in zip(inputs, bits)]
+                self.assertEqual(solve(cnf, assumptions)[0], sum(bits) == 2)
 
     def test_variable_families(self):
         for encoding, selections in [('ssv', 9), ('msv', 7), ('ditt', 14)]:
@@ -99,30 +94,32 @@ class PaperEncodings(unittest.TestCase):
                         self.assertFalse(self.solve(3, f, k - 1, encoding, symmetries))
 
     def test_each_symmetry_excludes_its_pattern(self):
-        def satisfiable(symmetry, assumptions):
-            inst = Instance(3, 0, 3, Options(model='paper', symmetries=symmetry))
+        def satisfiable(encoding, symmetry, pairs, values):
+            inst = Instance(3, 0, 3, Options(model='paper', encoding=encoding, symmetries=symmetry))
             by_name = {name: i + 1 for i, name in enumerate(inst.cnf.names)}
-            literals = [by_name[name] if value else -by_name[name] for name, value in assumptions]
-            with Solver(name='cadical195', bootstrap_with=inst.cnf.clauses) as solver:
-                return solver.solve(assumptions=literals)
+            literals = [by_name[name] if value else -by_name[name] for name, value in values]
+            for step, pair in pairs:
+                literals.extend(inst.pairs[step][pair])
+            return solve(inst.cnf, literals)[0]
+
         patterns = {
-            'N': [('f:4:01', False), ('f:4:10', False), ('f:4:11', False)],
-            'A': [('g:1:4', True), ('g:1:6', False)],
-            'R': [('s:4:1:2', True), ('s:5:1:4', True)],
-            'C': [('s:4:2:3', True), ('s:5:1:2', True)],
-            'O': [('s:4:1:2', True), ('s:5:1:2', True),
-                  ('f:4:11', True), ('f:5:11', False)],
-            'S': [('s:4:2:3', True)],
+            'N': ([], [('f:4:01', False), ('f:4:10', False), ('f:4:11', False)]),
+            'A': ([], [('g:1:4', True), ('g:1:6', False)]),
+            'R': ([(4, (1, 2)), (5, (1, 4))], []),
+            'C': ([(4, (2, 3)), (5, (1, 2))], []),
+            'O': ([(4, (1, 2)), (5, (1, 2))], [('f:4:11', True), ('f:5:11', False)]),
+            'S': ([(4, (2, 3))], []),
         }
-        for flag, pattern in patterns.items():
-            self.assertTrue(satisfiable('', pattern), flag)
-            self.assertFalse(satisfiable(flag, pattern), flag)
+        for encoding in ('ssv', 'msv', 'ditt'):
+            for flag, (pairs, values) in patterns.items():
+                with self.subTest(encoding=encoding, flag=flag):
+                    self.assertTrue(satisfiable(encoding, '', pairs, values))
+                    self.assertFalse(satisfiable(encoding, flag, pairs, values))
 
     def test_model_boundary_and_legacy_options(self):
         self.assertTrue(self.solve(2, 0x6, 1))
         inst = Instance(2, 0x6, 1, Options())
-        with Solver(name='cadical195', bootstrap_with=inst.cnf.clauses) as solver:
-            self.assertFalse(solver.solve())
+        self.assertFalse(solve(inst.cnf)[0])
         with self.assertRaises(ValueError):
             Options(model='aig', symmetries='R')
         with self.assertRaises(ValueError):

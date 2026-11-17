@@ -6,7 +6,7 @@
     {"name": "ditt", "options": {"encoding": "ditt"}}
   ],
   "solvers": [
-    {"backend": "external", "solver_argv": ["cadical", "--seed=0", "{cnf}", "{proof}"], "timeout": 3600, "label": "cadical-seed0"},
-    {"backend": "external", "solver_argv": ["cadical", "--seed=1", "{cnf}", "{proof}"], "timeout": 3600, "label": "cadical-seed1"}
+    {"backend": "cadical", "solver_argv": ["cadical", "-v", "--seed=0", "{cnf}", "{proof}"], "timeout": 3600, "label": "cadical-seed0"},
+    {"backend": "cadical", "solver_argv": ["cadical", "-v", "--seed=1", "{cnf}", "{proof}"], "timeout": 3600, "label": "cadical-seed1"}
   ]
 }

@@ -9,7 +9,7 @@ source .venv/bin/activate
 
 # Install dependencies
 python -m pip install --upgrade pip
-python -m pip install -e '.[sat,analysis]'
+python -m pip install -e '.[analysis]'
 
 # Create directories
 mkdir -p data results

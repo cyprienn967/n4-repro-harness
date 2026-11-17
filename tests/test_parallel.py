@@ -1,4 +1,3 @@
-import importlib.util
 import json
 from functools import partial
 from pathlib import Path
@@ -8,6 +7,7 @@ import tempfile
 import unittest
 
 from aig_exact.cli import minimum_rows
+from cadical_helper import CADICAL
 
 
 def recorded_step(f, k, log):
@@ -28,7 +28,7 @@ class ParallelTests(unittest.TestCase):
             self.assertEqual(len(rows), 3)
             self.assertTrue(all(len(row['runs']) == 2 for _, row in rows))
 
-    @unittest.skipUnless(importlib.util.find_spec('pysat'), 'Requires python-sat')
+    @unittest.skipIf(CADICAL is None, 'Put CaDiCaL 3+ on PATH to run encoding checks')
     def test_slow_function_does_not_block_others_and_can_be_retried(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -40,21 +40,16 @@ import json
 from pathlib import Path
 import sys
 import time
-from pysat.formula import CNF
-from pysat.solvers import Solver
+import os
 
 cnf_path = Path(sys.argv[1])
 task = json.loads((cnf_path.parent / 'task.json').read_text())
 if task['hex'] == '0' and not Path(sys.argv[2]).exists():
     time.sleep(60)
-with Solver(name='cadical195', bootstrap_with=CNF(from_file=str(cnf_path)).clauses) as solver:
-    sat = solver.solve()
-    print('s SATISFIABLE' if sat else 's UNSATISFIABLE')
-    if sat:
-        print('v', *solver.get_model(), 0)
+os.execv(sys.argv[3], [sys.argv[3], '-q', str(cnf_path)])
 """)
             permit = root / 'permit-slow-function'
-            argv = json.dumps([sys.executable, str(solver), '{cnf}', str(permit)])
+            argv = json.dumps([sys.executable, str(solver), '{cnf}', str(permit), CADICAL])
             output = root / 'results'
             common = [sys.executable, '-m', 'aig_exact', 'reproduce', '-n', '2',
                       '--max-gates', '3', '--backend', 'external', '--solver-argv', argv,

@@ -8,8 +8,9 @@ from pathlib import Path
 from .experiment import digest
 
 
-def load_results(root):
-    for path in sorted(Path(root).rglob('result.json')):
+def load_results(*roots):
+    paths = {path.resolve() for root in roots for path in Path(root).rglob('result.json')}
+    for path in sorted(paths):
         row = json.loads(path.read_text())
         row['record_path'] = str(path.resolve())
         check = path.parent / 'proof-check.json'
@@ -22,16 +23,25 @@ def load_results(root):
         yield row
 
 
+def wall_seconds(row):
+    seconds = row.get('solve_wall_seconds')
+    return None if seconds is None else seconds + (row.get('solver_init_wall_seconds') or 0)
+
+
 def flatten(row):
     task, inst = row['task'], row['instance']
+    backend = task.get('backend', 'pysat')  # Older result files defaulted to PySAT.
     result = dict(run_id=row['run_id'], n=task['n'], hex=task['hex'], k=task['k'],
+                  minimum=task.get('minimum'), expected_status=row.get('expected_status'),
                   model=inst['options'].get('model', 'aig'),
                   encoding=inst['options']['encoding'],
                   options=json.dumps(inst['options'], sort_keys=True),
-                  backend=task.get('backend', 'pysat'), solver=task.get('solver', task.get('solver_argv')),
+                  backend=backend,
+                  solver=task.get('solver', task.get('solver_argv', 'cadical' if backend == 'cadical' else None)),
                   label=task.get('label'), status=row['status'],
                   source_sha256=row['provenance']['source_sha256'],
                   solver_binary_sha256=row['provenance'].get('solver_binary_sha256'),
+                  cadical_version=row['provenance'].get('cadical_version'),
                   python_sat_version=row['provenance'].get('python_sat_version'))
     for key in ('encode_wall_seconds', 'solve_wall_seconds', 'solver_init_wall_seconds',
                 'solver_cpu_seconds', 'solver_peak_memory_mb', 'decisions', 'conflicts',

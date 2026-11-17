@@ -1,13 +1,53 @@
 """Solver boundary: preserve UNKNOWN/errors; never infer UNSAT from missing models."""
-import json
 import os
 import re
-import shlex
+import shutil
 import signal
 import subprocess
-import sys
 import time
+from functools import lru_cache
+from hashlib import file_digest
 from pathlib import Path
+
+
+CADICAL_ARGV = ('cadical', '-v', '--seed=0', '{cnf}')
+
+
+@lru_cache(maxsize=32)
+def binary_info(path, stamp, check_version):
+    with open(path, 'rb') as stream:
+        info = dict(solver_binary_sha256=file_digest(stream, 'sha256').hexdigest())
+    if check_version:
+        try:
+            version = subprocess.check_output([path, '--version'], text=True, timeout=5).strip()
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+            raise ValueError(f'Could not read CaDiCaL version from {path}') from exc
+        match = re.fullmatch(r'(\d+)\.\d+\.\d+(?:[-+][\w.-]+)?', version)
+        if match is None or int(match[1]) < 3:
+            raise ValueError(f'CaDiCaL 3 or newer is required, found {version!r} at {path}')
+        info['cadical_version'] = version
+    return info
+
+
+def prepare(backend, argv=None):
+    """Resolve the executable that will be run and fingerprint it for resume."""
+    if backend not in ('cadical', 'external'):
+        raise ValueError('Use backend cadical or external. Regenerate any PySAT manifests.')
+    if argv is None and backend == 'cadical':
+        argv = list(CADICAL_ARGV)
+    if not isinstance(argv, list) or not argv or not all(isinstance(arg, str) for arg in argv):
+        raise ValueError('Solver argv must be a nonempty JSON array of strings')
+    if not any('{cnf}' in arg for arg in argv[1:]):
+        raise ValueError('Solver argv must pass {cnf} to the executable')
+    binary = shutil.which(argv[0])
+    if binary is None:
+        hint = '. Build CaDiCaL 3+ and put it on PATH (see README)' if backend == 'cadical' else ''
+        raise FileNotFoundError(f'Solver executable {argv[0]!r} not found{hint}')
+    path = Path(binary).absolute()
+    stat = path.stat()
+    stamp = (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
+    info = binary_info(str(path), stamp, backend == 'cadical')
+    return [str(path), *argv[1:]], info
 
 
 def parse_output(text, returncode):
@@ -31,15 +71,18 @@ def parse_output(text, returncode):
 def parse_stats(text):
     result = {}
     for key in ('conflicts', 'decisions', 'propagations', 'restarts'):
-        patterns = [rf'\b{key}\s*:\s*([\d,]+)', rf'\b{key}\s+([\d,]+)']
+        # CaDiCaL -v also prints indented counters for warmup and other phases.
+        # Those must not replace the top-level totals.
+        patterns = [rf'^(?:c )?{key}[ \t]*:[ \t]*([\d,]+)',
+                    rf'^(?:c )?{key}[ \t]+([\d,]+)']
         for pattern in patterns:
-            found = re.findall(pattern, text, re.I)
+            found = re.findall(pattern, text, re.I | re.M)
             if found:
                 result[key] = int(found[-1].replace(',', ''))
                 break
     for key, pattern in {
-        'solver_cpu_seconds': r'process-time\s*:\s*([\d.]+)',
-        'solver_peak_memory_mb': r'(?:maximum resident set size|maximum-resident-set-size)\s*:\s*([\d.]+)',
+        'solver_cpu_seconds': r'(?:process-time|total process time since initialization)\s*:\s*([\d.]+)',
+        'solver_peak_memory_mb': r'(?:maximum resident set size|maximum-resident-set-size)(?: of process)?\s*:\s*([\d.]+)',
     }.items():
         found = re.findall(pattern, text, re.I)
         if found:
@@ -55,57 +98,29 @@ def external(argv, directory, timeout):
     if not any('{cnf}' in s for s in argv):
         raise ValueError('External solver argv must contain {cnf}')
     started = time.perf_counter()
-    with (directory / 'solver.stdout').open('w') as stdout, (directory / 'solver.stderr').open('w') as stderr:
-        process = subprocess.Popen(command, stdout=stdout, stderr=stderr, start_new_session=True)
+    # Waiting on the pipes avoids timeout polling rounding short solve times.
+    with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                          start_new_session=True) as process:
         timed_out = False
         try:
-            process.wait(timeout=timeout)
+            stdout, stderr = process.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
             timed_out = True
-            os.killpg(process.pid, signal.SIGKILL)
-            process.wait()
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            stdout, stderr = process.communicate()
     wall = time.perf_counter() - started
-    text = (directory / 'solver.stdout').read_text(errors='replace')
-    errors = (directory / 'solver.stderr').read_text(errors='replace')
+    (directory / 'solver.stdout').write_bytes(stdout)
+    (directory / 'solver.stderr').write_bytes(stderr)
+    text, errors = stdout.decode(errors='replace'), stderr.decode(errors='replace')
     if timed_out:
         status, model = 'TIMEOUT', []
     else:
         status, model = parse_output(text, process.returncode)
     return dict(status=status, model=model, solve_wall_seconds=wall,
                 solver_argv=command, returncode=process.returncode, **parse_stats(text + '\n' + errors))
-
-
-def embedded(instance, name, directory, timeout=None):
-    if timeout is None:
-        return _embedded(instance.cnf.clauses, name, directory)
-
-    started = time.perf_counter()
-    try:
-        child = subprocess.run(
-            [sys.executable, '-m', 'aig_exact.solver', name, str(directory.resolve())],
-            capture_output=True, text=True, timeout=timeout,
-        )
-    except subprocess.TimeoutExpired:
-        return dict(status='TIMEOUT', model=[], solve_wall_seconds=time.perf_counter() - started)
-    if child.returncode:
-        raise RuntimeError(child.stderr.strip() or f'PySAT subprocess exited with {child.returncode}')
-    return json.loads(child.stdout)
-
-
-def _embedded(clauses, name, directory):
-    from pysat.solvers import Solver
-    started = time.perf_counter()
-    # Build/solve times separated: bootstrap clauses are counted in solver init.
-    with Solver(name=name, bootstrap_with=clauses, use_timer=True) as solver:
-        initialized = time.perf_counter()
-        sat = solver.solve()
-        finished = time.perf_counter()
-        result = dict(status='SAT' if sat else 'UNSAT', model=solver.get_model() if sat else [],
-                      solve_wall_seconds=finished - initialized,
-                      solver_init_wall_seconds=initialized - started,
-                      solver_cpu_seconds=solver.time_accum(), **solver.accum_stats())
-    Path(directory, 'solver.stdout').write_text('s ' + ('SATISFIABLE' if sat else 'UNSATISFIABLE') + '\n')
-    return result
 
 
 def check_proof(directory, checker, timeout=None, lrat=False):
@@ -128,11 +143,3 @@ def check_proof(directory, checker, timeout=None, lrat=False):
         status = 'TIMEOUT'
     (directory / 'proof-check.log').write_text(text)
     return dict(status=status, checker_argv=cmd, wall_seconds=time.perf_counter() - started)
-
-
-if __name__ == '__main__':
-    from pysat.formula import CNF
-
-    name, directory = sys.argv[1:]
-    clauses = CNF(from_file=str(Path(directory, 'instance.cnf'))).clauses
-    print(json.dumps(_embedded(clauses, name, directory)))

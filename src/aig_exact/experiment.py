@@ -3,16 +3,18 @@ import hashlib
 import json
 import math
 import platform
+import re
 import subprocess
 import sys
 import time
 from dataclasses import asdict
+from functools import lru_cache
 from pathlib import Path
 from . import __version__
 from .boolean import hex_tt
 from .encode import Instance, Options
 from . import circuit, solver
-import re
+
 
 def dump(path, value):
     path = Path(path)
@@ -25,6 +27,7 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+@lru_cache(maxsize=1)
 def provenance():
     root = Path(__file__).resolve().parent
     source_hash = hashlib.sha256()
@@ -40,7 +43,9 @@ def provenance():
 
 
 def run_task(task, root, resume=False, *, progress=False):
-    allowed = {'n', 'hex', 'k', 'options', 'backend', 'solver', 'solver_argv', 'timeout', 'label'}
+    allowed = {'n', 'hex', 'k', 'options', 'backend', 'solver_argv', 'timeout', 'label', 'minimum'}
+    if task.get('backend') == 'pysat':
+        raise ValueError('PySAT manifests must be regenerated with the CaDiCaL configs')
     if set(task) - allowed:
         raise ValueError(f'Unknown task fields: {set(task) - allowed}')
     task = dict(task)
@@ -49,33 +54,26 @@ def run_task(task, root, resume=False, *, progress=False):
         raise ValueError('timeout must be a positive, finite number of seconds')
     n, f, k = task['n'], int(task['hex'], 16), task['k']
     options = Options(**task.get('options', {}))
-    prov = provenance()
+    minimum = task.get('minimum')
+    if minimum is not None and (type(minimum) is not int or minimum < 0):
+        raise ValueError('Task minimum must be a nonnegative integer')
+    expected_status = None
+    if minimum is not None and k <= minimum:
+        expected_status = 'SAT' if k == minimum else 'UNSAT'
     # Include binary bytes in cache identity, so a changed external executable
     # cannot accidentally reuse an earlier result.
-    backend = task.get('backend', 'pysat')
-    if backend not in ('pysat', 'external'):
-        raise ValueError('backend must be pysat or external')
-    if backend == 'pysat':
-        import importlib.metadata
-        prov['python_sat_version'] = importlib.metadata.version('python-sat')
-    else:
-        import shutil
-        binary = shutil.which(task['solver_argv'][0])
-        if binary is None:
-            raise FileNotFoundError(task['solver_argv'][0])
-        prov['solver_binary_sha256'] = digest(binary)
+    backend = task.setdefault('backend', 'cadical')
+    command, binary = solver.prepare(backend, task.get('solver_argv'))
+    prov = dict(provenance(), **binary)
     # A definitive answer can be reused when only the time limit changes.
     identity = dict(task={key: value for key, value in task.items() if key != 'timeout'},
                     source=prov['source_sha256'],
-                    solver_binary=prov.get('solver_binary_sha256'),
-                    python_sat=prov.get('python_sat_version'))
+                    solver_binary=prov['solver_binary_sha256'])
     run_id = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()[:24]
 
 
     # Create a readable name for the experiment
-    label = task.get("label") or (
-        f"{options.encoding}-{task.get('solver', backend)}"
-    )
+    label = task.get('label') or f'{options.encoding}-{backend}'
 
     safe_label = re.sub(
         r"[^A-Za-z0-9_-]+", "-", label
@@ -127,10 +125,10 @@ def run_task(task, root, resume=False, *, progress=False):
         result = dict(run_id=run_id, task=task, provenance=prov, directory=str(directory.resolve()),
                       encode_wall_seconds=encode_seconds, instance=instance.metadata(),
                       timestamp_utc=__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat())
+        if expected_status is not None:
+            result['expected_status'] = expected_status
         try:
-            solved = (solver.embedded(instance, task.get('solver', 'cadical195'), directory, timeout)
-                      if backend == 'pysat' else
-                      solver.external(task['solver_argv'], directory, timeout))
+            solved = solver.external(command, directory, timeout)
             model = solved.pop('model')
             dump(directory / 'model.json', model)
             result.update(solved)
@@ -144,6 +142,10 @@ def run_task(task, root, resume=False, *, progress=False):
                     (directory / 'witness.aag').write_text(circuit.aag(witness))
                 result['witness_verified'] = True
                 result['circuit'] = circuit.analyze(witness)
+            status = result['status']
+            if expected_status and status in ('SAT', 'UNSAT') and status != expected_status:
+                result['solver_status'] = status
+                raise ValueError(f'Expected {expected_status} at k={k} from minimum {minimum}, got {status}')
         except Exception as exc:
             result.update(status='ERROR', error=f'{type(exc).__name__}: {exc}')
         proof = directory / 'proof.drat'
@@ -159,13 +161,11 @@ def run_task(task, root, resume=False, *, progress=False):
         lock.unlink(missing_ok=True)
 
 
-def minimum_step(n, f, k, root, options, backend='pysat', solver_name='cadical195',
+def minimum_step(n, f, k, root, options, backend='cadical',
                  solver_argv=None, timeout=None, resume=False, *, progress=False):
     """Solve one gate count and return a minimum-search step."""
     task = dict(n=n, hex=hex_tt(n, f), k=k, options=asdict(options), backend=backend)
-    if backend == 'pysat':
-        task['solver'] = solver_name
-    else:
+    if solver_argv is not None:
         task['solver_argv'] = solver_argv
     if timeout is not None:
         task['timeout'] = timeout
@@ -183,13 +183,13 @@ def minimum_step(n, f, k, root, options, backend='pysat', solver_name='cadical19
                 runs=[dict(k=k, status=record['status'], run_id=record['run_id'])])
 
 
-def minimum(n, f, max_k, root, options, backend='pysat', solver_name='cadical195',
+def minimum(n, f, max_k, root, options, backend='cadical',
             solver_argv=None, timeout=None, resume=False, *, progress=False):
     """Try ALL lower sizes. An unknown/error interrupts exactness; never skipped."""
     runs = []
     for k in range(max_k + 1):
-        row = minimum_step(n, f, k, root, options, backend, solver_name,
-                           solver_argv, timeout, resume, progress=progress)
+        row = minimum_step(n, f, k, root, options, backend, solver_argv,
+                           timeout, resume, progress=progress)
         runs.extend(row['runs'])
         if row['status'] != 'CONTINUE':
             return dict(row, runs=runs)

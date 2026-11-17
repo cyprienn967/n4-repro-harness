@@ -38,21 +38,24 @@ Requires Python 3.11 or newer. Linux and macOS are the intended platforms;
 external solver timeouts use POSIX process groups. On Windows, use WSL.
 
 ```bash
-cd aig-exact
+cd n4-repro-harness
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -e '.[sat]'
-aig-exact --help
+python -m pip install -e '.[plot]'
+
+# Build the same CaDiCaL release on both machines.
+git clone --depth 1 --branch rel-3.0.1 https://github.com/arminbiere/cadical.git third_party/cadical
+(cd third_party/cadical && ./configure && make -j4)
+export PATH="$PWD/third_party/cadical/build:$PATH"
+cadical --version
 ```
 
-The `sat` extra installs **python-sat (PySAT)**, not the unrelated astronomy
-package called `pysat`. The default embedded solver is `cadical195`. Optional
-analysis dependencies provide pandas/Parquet and NetworkX:
-
-```bash
-python -m pip install -e '.[sat,analysis]'
-```
+Solver commands require **CaDiCaL 3 or newer** on PATH. Each call sends the
+written DIMACS file to the CaDiCaL executable, saves `solver.stdout` and
+`solver.stderr`, and records the version, arguments and binary hash. The
+`plot` extra installs Matplotlib. Add `analysis` for Parquet and NetworkX
+support (`python -m pip install -e '.[plot,analysis]'`). Regenerate old PySAT
+manifests using the updated config files.
 
 To capture your actual resolved versions:
 
@@ -74,7 +77,7 @@ AIG_EXACT_FULL_TESTS=1 python -m unittest discover -s tests -v
 ```
 
 The first command checks truth-table conventions, cofactor math, the scalar
-circuit interpreter, and solver-output parsing. With the `sat` extra it also
+circuit interpreter, and solver-output parsing. With CaDiCaL 3+ on PATH it also
 compares all three encodings against an independent tiny chain enumerator and
 checks exact costs of all 16 two-input functions, including optional pruning.
 The second also checks that the 222 four-input orbits partition all 65,536 truth
@@ -230,9 +233,8 @@ with the existing constraints.
 
 ## 5. External solvers, timeouts and proof certificates
 
-PySAT gives structured decisions/conflicts/propagations/restarts and runs in
-a separate process when `--timeout` is set. Use an external solver to produce
-proof certificates.
+CaDiCaL reports decisions, conflicts, propagations and restarts with `-v`.
+Pass a proof path to CaDiCaL to generate a proof certificate.
 
 Build/install the upstream tools locally:
 
@@ -244,11 +246,9 @@ For example, from the project root:
 
 ```bash
 mkdir -p third_party
-git clone https://github.com/arminbiere/cadical third_party/cadical
-(cd third_party/cadical && ./configure && make -j4)
 git clone https://github.com/marijnheule/drat-trim third_party/drat-trim
 make -C third_party/drat-trim
-export PATH="$PWD/third_party/cadical/build:$PWD/third_party/drat-trim:$PATH"
+export PATH="$PWD/third_party/drat-trim:$PATH"
 ```
 
 Record upstream commit IDs alongside your experiment notes. The harness hashes
@@ -257,8 +257,7 @@ flags, including seeds. Check your installed solver's help if flags differ.
 
 ```bash
 aig-exact solve -n 4 --hex 1669 -k 9 \
-  --backend external \
-  --solver-argv '["cadical", "--seed=0", "{cnf}", "{proof}"]' \
+  --solver-argv '["cadical", "-v", "--seed=0", "{cnf}", "{proof}"]' \
   --timeout 3600 --out results/certificates
 ```
 
@@ -327,10 +326,68 @@ Each variant has a name and an `options` object using Python-style keys:
 `encoding`, `cardinality`, `fanin_order`, `no_trivial`, `no_duplicates`,
 `all_used`, `target_symmetry`. Paper variants instead set `model: "paper"`
 and `symmetries: "NARCOS"` (or a subset). `configs/paper-encodings.json` contains
-all 192 encoding/symmetry combinations and requires paper-model minima. A solver row uses either `backend=pysat` plus
-`solver`, or `backend=external` plus `solver_argv` and `timeout`. Seed changes
-belong in external argv, e.g. `--seed=1`. Labels distinguish repeated campaigns.
+all 192 encoding/symmetry combinations and requires paper-model minima. Solver
+rows use `backend: "cadical"` with optional `solver_argv` and `timeout`. Use
+`backend: "external"` and an explicit argv to select a different executable.
+The job label is `variant:solver-label`. Seed changes belong in solver argv.
+A definitive answer that contradicts the recorded minimum is reported as ERROR.
 There is no hidden random seed in NPN enumeration or CNF construction.
+
+### Split the four-input paper campaign between two people
+
+After installing the package and CaDiCaL on each machine, run one command each:
+
+```bash
+# Person 1
+bash run_experiments_n4.sh --half 1
+
+# Person 2
+bash run_experiments_n4.sh --half 2
+```
+
+Each machine takes 111 of the 222 representatives, alternating in sorted
+truth-table order. It computes unpruned SSV minima in the paper's arbitrary
+binary gate basis, then runs all 192 configurations at `k` and `k-1` for
+those same functions. Zero-step functions have only the `k` job. Outputs
+go to `results/n4/half-1` or `results/n4/half-2`. Each person can complete
+their half independently. `N4_WORKERS` defaults to 4 and `N4_TIMEOUT` defaults
+to 300 seconds per solver call. Repeat the command with a larger `N4_TIMEOUT`
+to retry incomplete cases and reuse definitive results.
+
+Minima timeouts are listed in the half's `timed-out.json`. Benchmarks start
+after the half has exact minima. Benchmark timeouts go to
+`benchmarks/timed-out.jsonl`. To retry only timed-out benchmark jobs:
+
+```bash
+aig-exact run --manifest results/n4/half-1/benchmarks/timed-out.jsonl \
+  --out results/n4/half-1/benchmarks --resume --workers 4 --timeout 1800
+```
+
+If you already share a full manifest, run it with `aig-exact run --half 1`
+on one machine and `--half 2` on the other. Each function's budgets and
+configurations stay together. The script already partitions at the minima
+stage, so its per-half manifests can be run directly.
+
+### Plot two configurations
+
+After copying both half directories onto one machine:
+
+```bash
+aig-exact plot --runs results/n4/half-{1,2}/benchmarks \
+  --x paper-ssv-NARCS:cadical --y paper-msv-NARCS:cadical \
+  --out results/n4/ssv-vs-msv.png
+
+aig-exact aggregate --runs results/n4/half-{1,2}/benchmarks --out results/n4/tables
+```
+
+`plot` pairs the same function and gate budget under the two labels. Circles
+show SAT at the minimum `k`. Triangles show UNSAT at `k-1`. Both axes use
+the same logarithmic scale. Above the diagonal the x-axis configuration
+took less time, and below it the y-axis configuration took less time.
+The command reports win and tie counts for each budget and counts excluded
+pairs. It uses completed SAT/UNSAT measurements with matching status.
+Use label names from the manifest. Older near-minimum manifests are classified
+by SAT/UNSAT status. PNG, SVG, and PDF output are supported.
 
 ### Parallel runs / cluster use
 
@@ -372,8 +429,8 @@ results/<campaign>/<RUN_ID>/
 Recorded: encoding time, solver time, CNF variables/clauses/literals and length
 histogram, solver counters when available, proof bytes, source hash, git commit,
 Python/platform, solver identity, witness depth/fanouts/complemented edges and
-restriction gate losses. PySAT initialization time is separate from solve time.
-External time includes process startup. External counters and memory/CPU fields
+restriction gate losses. Solver wall time includes process startup and reading
+the CNF. External counters and memory/CPU fields
 are best-effort parsers; absent metrics are null/missing, never invented zeros.
 External raw logs are authoritative; parsers may need adapting to your version.
 
@@ -494,7 +551,7 @@ cross-checks and extension points:
   Run `abc -c 'twoexact -h'` for your exact build, confirm AND-only mode and the
   truth-table convention, then compare minima. This repository does not wrap
   version-dependent ABC commands or count an ABC output as a certificate.
-- [PySAT](https://pysathq.github.io/), [CaDiCaL](https://github.com/arminbiere/cadical),
+- [CaDiCaL](https://github.com/arminbiere/cadical),
   [Kissat](https://github.com/arminbiere/kissat), [DRAT-trim](https://github.com/marijnheule/drat-trim).
 
 Full n=5 enumeration is intentionally **not** provided: generating every orbit
