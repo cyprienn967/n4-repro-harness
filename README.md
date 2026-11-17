@@ -368,26 +368,36 @@ on one machine and `--half 2` on the other. Each function's budgets and
 configurations stay together. The script already partitions at the minima
 stage, so its per-half manifests can be run directly.
 
-### Plot two configurations
+### Plot benchmark comparisons
 
 After copying both half directories onto one machine:
 
 ```bash
 aig-exact plot --runs results/n4/half-{1,2}/benchmarks \
   --x paper-ssv-NARCS:cadical --y paper-msv-NARCS:cadical \
-  --out results/n4/ssv-vs-msv.png
+  --out results/n4/ssv-vs-msv-conflicts.png
+
+aig-exact plot --runs results/n4/half-{1,2}/benchmarks --all --out results/n4/plots
 
 aig-exact aggregate --runs results/n4/half-{1,2}/benchmarks --out results/n4/tables
 ```
 
 `plot` pairs the same function and gate budget under the two labels. Circles
-show SAT at the minimum `k`. Triangles show UNSAT at `k-1`. Both axes use
-the same logarithmic scale. Above the diagonal the x-axis configuration
-took less time, and below it the y-axis configuration took less time.
-The command reports win and tie counts for each budget and counts excluded
-pairs. It uses completed SAT/UNSAT measurements with matching status.
-Use label names from the manifest. Older near-minimum manifests are classified
-by SAT/UNSAT status. PNG, SVG, and PDF output are supported.
+show SAT at the minimum `k`. Triangles show UNSAT at `k-1`. Conflict counts
+are the default because they measure solver work and are less sensitive to
+machine speed or load. The two axes use the same scale with linear spacing
+near zero to keep zero-conflict solves visible. Use `--metric runtime` with
+either command to plot solver wall time on log axes.
+
+Above the diagonal favors the x-axis configuration. Below it favors the
+y-axis configuration. Missing measurements and incomplete or mismatched runs
+are excluded. The single-pair command reports wins and ties at each budget
+and supports PNG, SVG, and PDF output. Older near-minimum manifests are
+classified by SAT/UNSAT status.
+
+`--all` writes a PNG for each unordered pair of configuration labels with
+comparable results. It uses the saved results, so the full set of 192
+configurations means up to 18,336 plots. Files are named by metric and pair.
 
 ### Parallel runs / cluster use
 

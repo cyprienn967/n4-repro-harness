@@ -249,11 +249,15 @@ def main():
     aggregate.add_argument('--runs', type=Path, nargs='+', required=True)
     aggregate.add_argument('--out', type=Path, required=True)
     aggregate.add_argument('--parquet', action='store_true')
-    plot = sub.add_parser('plot', help='Compare two benchmark configurations on one timing scatterplot')
+    plot = sub.add_parser('plot', help='Plot conflicts or runtime for matched benchmark configurations')
     plot.add_argument('--runs', type=Path, nargs='+', required=True)
-    plot.add_argument('--x', required=True, help='Manifest configuration label for the x-axis')
-    plot.add_argument('--y', required=True, help='Manifest configuration label for the y-axis')
-    plot.add_argument('--out', type=Path, required=True)
+    plot_mode = plot.add_mutually_exclusive_group(required=True)
+    plot_mode.add_argument('--x', help='Manifest configuration label for the x-axis')
+    plot_mode.add_argument('--all', action='store_true', help='Plot every pair of configuration labels')
+    plot.add_argument('--y', help='Manifest configuration label for the y-axis')
+    plot.add_argument('--metric', choices=('conflicts', 'runtime'), default='conflicts',
+                      help='Measurement to compare (default: conflicts)')
+    plot.add_argument('--out', type=Path, required=True, help='Plot file, or output directory with --all')
     args = p.parse_args()
     try:
         dispatch(args)
@@ -437,5 +441,13 @@ def dispatch(a):
             frame.to_parquet(a.out / 'runs.parquet', index=False)
         print(f'Aggregated {len(rows)} runs')
     elif cmd == 'plot':
-        from .plot import scatter
-        scatter(analysis.load_results(*a.runs), a.x, a.y, a.out)
+        from .plot import scatter, scatter_all
+        rows = analysis.load_results(*a.runs)
+        if a.all:
+            if a.y is not None:
+                raise ValueError('--all selects the labels automatically. Remove --y.')
+            scatter_all(rows, a.out, a.metric)
+        else:
+            if a.y is None:
+                raise ValueError('--x requires --y')
+            scatter(rows, a.x, a.y, a.out, a.metric)
