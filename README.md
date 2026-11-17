@@ -12,6 +12,45 @@ for the clauses, scope, commands, and validation.
 
 No complete four-input campaign or proof-certified maximum is bundled.
 
+## Quick commands
+
+Run these from the repo root after [installing the package and solver](#1-install-locally).
+These examples use the paper's arbitrary two-input gate model.
+
+```bash
+# Find n=4 minima with one configuration (MSV + all six symmetry breakers).
+aig-exact npn -n 4 --out data/npn4.txt
+aig-exact reproduce -n 4 --functions data/npn4.txt --model paper \
+  --encoding msv --symmetries NARCOS --max-gates 7 --workers 4 \
+  --out results/n4-msv-narcos --resume
+
+# Benchmark all 192 configurations. Each person runs their own half.
+bash run_experiments_n4.sh --half 1
+bash run_experiments_n4.sh --half 2
+
+# After collecting both halves on one machine, plot one pair or all pairs.
+aig-exact plot --runs results/n4/half-{1,2}/benchmarks \
+  --x paper-ssv-NARCOS:cadical --y paper-msv-NARCOS:cadical \
+  --out results/n4/ssv-vs-msv-conflicts.png
+aig-exact plot --runs results/n4/half-{1,2}/benchmarks --all --out results/n4/plots
+
+# Calculate Boolean and group-theoretic features and analyze the saved results.
+python scripts/analyze_n4.py
+```
+
+Plots use conflicts by default. Add `--metric runtime` for wall time. The
+analysis script writes `results/n4/feature-analysis/` with full features plus
+exact minima (`features.jsonl`), benchmark rows joined to scalar features
+(`benchmarks-with-features.csv`), and Pearson and Spearman correlations
+(`correlations.csv`). Circuit size is analyzed once per function. Conflict
+counts are analyzed per configuration and separately at the minimum `k`
+and one gate below it. The CSV reports eligible, recorded and analyzed (`n`)
+sample counts plus timeouts. Correlations are blank for constant or insufficient
+data. These are descriptive associations across the sampled functions.
+
+The proof that all six symmetry breakers preserve a common optimum is in
+[Six symmetry breakers](docs/paper-encodings.md#six-symmetry-breakers).
+
 ## What is being counted in the default AIG model?
 
 - Two-input AND: one gate.
