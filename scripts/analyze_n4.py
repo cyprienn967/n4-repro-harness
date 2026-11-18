@@ -145,8 +145,8 @@ def run(results, output):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--results", type=Path, default=Path("results/n4"),
-                        help="Directory containing half-1 and half-2 (default: results/n4)")
+    parser.add_argument("--results", type=Path, default=Path("results/n4-and-or"),
+                        help="Directory containing half-1 and half-2 (default: results/n4-and-or)")
     parser.add_argument("--out", type=Path, help="Output directory (default: <results>/feature-analysis)")
     args = parser.parse_args()
     try:

@@ -23,8 +23,8 @@ class Options:
     symmetries: str = ''
 
     def __post_init__(self):
-        if self.model not in ('aig', 'paper'):
-            raise ValueError('model must be aig or paper')
+        if self.model not in ('aig', 'paper-aig'):
+            raise ValueError('model must be aig or paper-aig')
         if self.encoding not in ('ssv', 'msv', 'ditt'):
             raise ValueError('Unknown encoding')
         if self.cardinality not in ('sequential', 'pairwise'):
@@ -33,8 +33,8 @@ class Options:
             raise ValueError('Paper symmetry letters must be drawn from NARCOS')
         object.__setattr__(self, 'symmetries', ''.join(s for s in 'NARCOS' if s in self.symmetries))
         if self.model == 'aig' and self.symmetries:
-            raise ValueError('--symmetries requires --model paper; paper constraints assume arbitrary operators')
-        if self.model == 'paper' and (
+            raise ValueError('--symmetries requires --model paper-aig')
+        if self.model == 'paper-aig' and (
             self.no_trivial or self.no_duplicates or self.all_used or self.target_symmetry
             or not self.fanin_order or self.cardinality != 'sequential'
         ):
@@ -178,7 +178,7 @@ class AIGInstance:
 
 def Instance(n, f, k, options=Options()):
     """Build the explicitly selected circuit model, preserving legacy AIG callers."""
-    if options.model == 'paper':
+    if options.model == 'paper-aig':
         from .paper_encode import PaperInstance
         return PaperInstance(n, f, k, options)
     return AIGInstance(n, f, k, options)

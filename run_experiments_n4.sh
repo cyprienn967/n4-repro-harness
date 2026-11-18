@@ -10,11 +10,11 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 half="$2"
 workers="${N4_WORKERS:-4}"
 timeout="${N4_TIMEOUT:-300}"
-out="results/n4/half-$half"
+out="results/n4-and-or/half-$half"
 
 aig-exact npn -n 4 --out "$out/functions.txt"
 aig-exact reproduce -n 4 --functions "$out/functions.txt" --half "$half" \
-  --model paper --encoding ssv --max-gates 7 \
+  --model paper-aig --encoding ssv --max-gates 10 \
   --workers "$workers" --timeout "$timeout" --out "$out" --resume
 aig-exact manifest --minima "$out/minima.json" \
   --config configs/paper-encodings.json --out "$out/manifest.jsonl"

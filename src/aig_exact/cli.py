@@ -32,8 +32,8 @@ def options(args):
 
 
 def add_options(p):
-    p.add_argument('--model', choices=['aig', 'paper'], default='aig',
-                   help='aig counts AND gates; paper counts arbitrary two-input operators')
+    p.add_argument('--model', choices=['aig', 'paper-aig'], default='aig',
+                   help='both count AND/OR gates with free NOT; paper-aig uses paper selectors')
     p.add_argument('--symmetries', default='', help='Paper Section III-D letters, e.g. NARCOS or NARCS')
     p.add_argument('--encoding', choices=['ssv', 'msv', 'ditt'], default='ssv')
     p.add_argument('--cardinality', choices=['sequential', 'pairwise'], default='sequential')

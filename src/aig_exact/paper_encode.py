@@ -24,6 +24,11 @@ class PaperInstance:
         self.operators = {i: {(p, q): c.var(f'f:{i}:{p}{q}')
                               for p, q in ((0, 1), (1, 0), (1, 1))}
                           for i in self.values}
+        # With f00=0, a signed AND or OR has odd parity across f01,f10,f11.
+        # Exclude constant, projections and XOR for every gate, even without N.
+        for op in self.operators.values():
+            for bits in ((0, 0, 0), (0, 1, 1), (1, 0, 1), (1, 1, 0)):
+                c.add(*(-var if bit else var for var, bit in zip(op.values(), bits)))
         self.pairs, self.members, self.ports, self.port_values = {}, {}, {}, {}
         self.uses = {i: [] for i in range(n + k + 1)}
         for i in self.values:
@@ -97,12 +102,8 @@ class PaperInstance:
 
     def symmetry_clauses(self):
         c, enabled = self.cnf, self.options.symmetries
-        for i, op in self.operators.items():
-            f01, f10, f11 = op[0, 1], op[1, 0], op[1, 1]
-            if 'N' in enabled:
-                c.add(f01, f10, f11)
-                c.add(f01, -f10, -f11)
-                c.add(-f01, f10, -f11)
+        # N (no trivial operators) already holds for the restricted gate basis.
+        for i in self.operators:
             if 'A' in enabled:
                 c.add(self.output[i], *(sel for _, sel in self.uses[i]))
             if 'R' in enabled:
@@ -163,7 +164,7 @@ class PaperInstance:
 
     def metadata(self):
         return dict(n=self.n, truth_table=self.f, k=self.k, options=asdict(self.options),
-                    model='paper', gate_basis='arbitrary-normal-two-input',
+                    model='paper-aig', gate_basis='and-or-free-not',
                     normalized_target=self.target, output_phase=self.output_phase,
                     query='minimal-search' if self.options.symmetries else 'paper-chain',
                     selection_semantics='exactly-two' if self.options.encoding == 'msv' else 'at-least-one',
@@ -171,17 +172,24 @@ class PaperInstance:
 
     def decode(self, model):
         positive = {v for v in model if v > 0}
-        gates, operators = [], []
+        gates = []
+        literals = {i: 2 * i for i in range(self.n + 1)}
         for i, pairs in self.pairs.items():
             selected = next((pair for pair, guards in pairs.items()
                              if all(v in positive for v in guards)), None)
             if selected is None:
                 raise ValueError('Missing valid operand selection')
-            gates.append([2 * j for j in selected])
-            operators.append(sum(1 << (2 * p + q) for (p, q), var in self.operators[i].items()
-                                 if var in positive))
+            a, b = (literals[j] for j in selected)
+            op = sum(1 << (2 * p + q) for (p, q), var in self.operators[i].items()
+                     if var in positive)
+            # Each normalized operator is one signed AND, with OR via De Morgan.
+            invert_a, invert_b, invert_out = {
+                0x2: (1, 0, 0), 0x4: (0, 1, 0),
+                0x8: (0, 0, 0), 0xe: (1, 1, 1),
+            }[op]
+            gates.append([a ^ invert_a, b ^ invert_b])
+            literals[i] = 2 * i + invert_out
         output = next((i for i, var in self.output.items() if var in positive), None)
         if output is None:
             raise ValueError('Missing output selection')
-        return dict(model='paper', n=self.n, gates=gates, operators=operators,
-                    output=2 * output + self.output_phase)
+        return dict(n=self.n, gates=gates, output=literals[output] ^ self.output_phase)

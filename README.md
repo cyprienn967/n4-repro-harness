@@ -3,36 +3,34 @@
 Exact synthesis of small single-output Boolean circuits, plus an experiment
 harness for comparing encodings, symmetry breaking, and function structure.
 
-Two circuit models are available. The default `--model aig` preserves the
-original AND/free-NOT experiments. **`--model paper` implements the paper's
-SSV/MSV/DITT encodings with arbitrary normal binary operators and N/A/R/C/O/S
-symmetry breaking.** These models count different gates: XOR costs 3 in AIG
-mode and 1 in paper mode. See [the paper alignment notes](docs/paper-encodings.md)
-for the clauses, scope, commands, and validation.
+Both encoder families count two-input AND and OR gates with free NOT and
+unlimited fanout. XOR costs three gates. The n=4 campaign uses `--model paper-aig`
+for the paper's SSV/MSV/DITT wiring and symmetry options.
+See [the encoding notes](docs/paper-encodings.md).
 
 No complete four-input campaign or proof-certified maximum is bundled.
 
 ## Quick commands
 
 Run these from the repo root after [installing the package and solver](#1-install-locally).
-These examples use the paper's arbitrary two-input gate model.
+The corrected campaign writes to `results/n4-and-or/`.
 
 ```bash
 # Find n=4 minima with one configuration (MSV + all six symmetry breakers).
 aig-exact npn -n 4 --out data/npn4.txt
-aig-exact reproduce -n 4 --functions data/npn4.txt --model paper \
-  --encoding msv --symmetries NARCOS --max-gates 7 --workers 4 \
-  --out results/n4-msv-narcos --resume
+aig-exact reproduce -n 4 --functions data/npn4.txt --model paper-aig \
+  --encoding msv --symmetries NARCOS --max-gates 10 --workers 4 \
+  --out results/n4-and-or-msv-narcos --resume
 
 # Benchmark all 192 configurations. Each person runs their own half.
 bash run_experiments_n4.sh --half 1
 bash run_experiments_n4.sh --half 2
 
 # After collecting both halves on one machine, plot one pair or all pairs.
-aig-exact plot --runs results/n4/half-{1,2}/benchmarks \
-  --x paper-ssv-NARCOS:cadical --y paper-msv-NARCOS:cadical \
-  --out results/n4/ssv-vs-msv-conflicts.png
-aig-exact plot --runs results/n4/half-{1,2}/benchmarks --all --out results/n4/plots
+aig-exact plot --runs results/n4-and-or/half-{1,2}/benchmarks \
+  --x paper-aig-ssv-NARCOS:cadical --y paper-aig-msv-NARCOS:cadical \
+  --out results/n4-and-or/ssv-vs-msv-conflicts.png
+aig-exact plot --runs results/n4-and-or/half-{1,2}/benchmarks --all --out results/n4-and-or/plots
 
 # Calculate Boolean and group-theoretic features and analyze the saved results.
 python scripts/analyze_n4.py
@@ -40,7 +38,7 @@ python scripts/plot_n4_features.py
 ```
 
 Plots use conflicts by default. Add `--metric runtime` for wall time. The
-analysis script writes `results/n4/feature-analysis/` with full features plus
+analysis script writes `results/n4-and-or/feature-analysis/` with full features plus
 exact minima (`features.jsonl`), benchmark rows joined to scalar features
 (`benchmarks-with-features.csv`), and Pearson and Spearman correlations
 (`correlations.csv`). Circuit size is analyzed once per function. Conflict
@@ -50,11 +48,11 @@ sample counts plus timeouts. Correlations are blank for constant or insufficient
 data. These are descriptive associations across the sampled functions.
 
 The plotting script reads those files and writes to
-`results/n4/feature-analysis/plots/`. It plots sensitivity, algebraic degree,
+`results/n4-and-or/feature-analysis/plots/`. It plots sensitivity, algebraic degree,
 essential variables, stabilizer sizes, NPN orbit size, and the number of signed
 restriction orbits against minimum circuit size. It also makes two heatmaps of
 Spearman correlations with conflicts, one at `k` and one at `k-1`. For plots of
-individual conflict counts, add `--configuration paper-msv-NARCOS:cadical`
+individual conflict counts, add `--configuration paper-aig-msv-NARCOS:cadical`
 (repeat for more labels). Zero-conflict solves are visible on the plots.
 
 The proof that all six symmetry breakers preserve a common optimum is in
@@ -372,7 +370,7 @@ aig-exact manifest --minima results/reproduction/minima.json \
 
 Each variant has a name and an `options` object using Python-style keys:
 `encoding`, `cardinality`, `fanin_order`, `no_trivial`, `no_duplicates`,
-`all_used`, `target_symmetry`. Paper variants instead set `model: "paper"`
+`all_used`, `target_symmetry`. Paper variants instead set `model: "paper-aig"`
 and `symmetries: "NARCOS"` (or a subset). `configs/paper-encodings.json` contains
 all 192 encoding/symmetry combinations and requires paper-model minima. Solver
 rows use `backend: "cadical"` with optional `solver_argv` and `timeout`. Use
@@ -394,10 +392,9 @@ bash run_experiments_n4.sh --half 2
 ```
 
 Each machine takes 111 of the 222 representatives, alternating in sorted
-truth-table order. It computes unpruned SSV minima in the paper's arbitrary
-binary gate basis, then runs all 192 configurations at `k` and `k-1` for
+truth-table order. It computes unpruned SSV minima in the AND/OR basis with free NOT, then runs all 192 configurations at `k` and `k-1` for
 those same functions. Zero-step functions have only the `k` job. Outputs
-go to `results/n4/half-1` or `results/n4/half-2`. Each person can complete
+go to `results/n4-and-or/half-1` or `results/n4-and-or/half-2`. Each person can complete
 their half independently. `N4_WORKERS` defaults to 4 and `N4_TIMEOUT` defaults
 to 300 seconds per solver call. Repeat the command with a larger `N4_TIMEOUT`
 to retry incomplete cases and reuse definitive results.
@@ -407,8 +404,8 @@ after the half has exact minima. Benchmark timeouts go to
 `benchmarks/timed-out.jsonl`. To retry only timed-out benchmark jobs:
 
 ```bash
-aig-exact run --manifest results/n4/half-1/benchmarks/timed-out.jsonl \
-  --out results/n4/half-1/benchmarks --resume --workers 4 --timeout 1800
+aig-exact run --manifest results/n4-and-or/half-1/benchmarks/timed-out.jsonl \
+  --out results/n4-and-or/half-1/benchmarks --resume --workers 4 --timeout 1800
 ```
 
 If you already share a full manifest, run it with `aig-exact run --half 1`
@@ -421,13 +418,13 @@ stage, so its per-half manifests can be run directly.
 After copying both half directories onto one machine:
 
 ```bash
-aig-exact plot --runs results/n4/half-{1,2}/benchmarks \
-  --x paper-ssv-NARCS:cadical --y paper-msv-NARCS:cadical \
-  --out results/n4/ssv-vs-msv-conflicts.png
+aig-exact plot --runs results/n4-and-or/half-{1,2}/benchmarks \
+  --x paper-aig-ssv-NARCS:cadical --y paper-aig-msv-NARCS:cadical \
+  --out results/n4-and-or/ssv-vs-msv-conflicts.png
 
-aig-exact plot --runs results/n4/half-{1,2}/benchmarks --all --out results/n4/plots
+aig-exact plot --runs results/n4-and-or/half-{1,2}/benchmarks --all --out results/n4-and-or/plots
 
-aig-exact aggregate --runs results/n4/half-{1,2}/benchmarks --out results/n4/tables
+aig-exact aggregate --runs results/n4-and-or/half-{1,2}/benchmarks --out results/n4-and-or/tables
 ```
 
 `plot` pairs the same function and gate budget under the two labels. Circles

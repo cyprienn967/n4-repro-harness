@@ -6,23 +6,13 @@ Families, and Parallelism*, TCAD 2020, Sections III-A–D.
 
 ## Gate model and scope
 
-Use `--model paper`. Each step is an arbitrary two-input Boolean operator;
-its three free bits are f01, f10, f11, and f00=0. Its two operands are distinct
-unsigned earlier signals j<h<i. Constants are not pooled operands. A target
-with f(0)=1 is complemented before synthesis, then the output is complemented
-when decoding. This normal form retains arbitrary binary-gate circuit minima.
-
-This implements the two-input, single-output case, not the paper's general
-multi-output/k-input model, topology families, or topology-parallel algorithms.
-The existing parallel campaign scheduler remains available. Zero-step constants
-and literals are handled as a boundary case. Positive-step synthesis requires
-at least two available primary signals, as required by distinct binary operands.
-
-The default `--model aig` is retained for existing experiments: arbitrary binary
-gates change the cost model. For example, XOR needs one paper step but three
-AND gates. Do not apply the AIG L(4)=10 expectation to paper-mode results.
-Legacy AIG pruning flags cannot be mixed with paper mode; they are not aliases
-for the paper's symmetry breakers.
+Use `--model paper-aig`. Each step has two distinct earlier operands with
+unrestricted fanout. With free inversion every signal can be phased to be
+zero on the all-zero input. In that convention the only two-input gates needed
+are AND, OR, (~a AND b), and (a AND ~b). Each costs one AND with signed wires.
+Restoring the output phase recovers the requested target. Constants and
+literals cost zero. Equal-source gates simplify to a literal or constant.
+The legacy `--model aig` uses the same cost metric and different selectors.
 
 ## Variables and clauses
 
@@ -59,17 +49,20 @@ contains all 64 subsets for each of SSV, MSV and DITT.
 
 | Letter | Paper constraint | Implementation |
 | --- | --- | --- |
-| N | No trivial operators | Exclude normal constant zero and the two projections using three operator clauses. |
+| N | No trivial operators | Exclude normal constant zero and the two projections through the gate basis. |
 | A | All steps used | Each step must feed a later step or the designated output. |
 | R | No reapplication | If step i uses j,h, no later step may use i together with j or h. |
 | C | Colexicographically ordered steps | Adjacent operand pairs are nondecreasing by (h,j). |
 | O | Ordered operators | Adjacent steps with identical operand pairs have strictly increasing operator vectors (f11,f10,f01). |
 | S | Symmetric variables | For symmetric primary inputs p<q, selecting q without p requires a preceding step that selects p. |
 
-R relies on the ability to replace a composition on the same two signals with
-one arbitrary operator. It is not sound as a direct restriction on AND-only
-circuits. S tests ordinary input-swap symmetry of the target, not its full NPN
-stabilizer. O is not merely duplicate signed-AND elimination.
+N is automatic in this basis. Runs differing only by N generate identical CNFs.
+For R, a later signed AND/OR gate that reuses an operand has a constant
+cofactor on that operand (set it to the outer gate's controlling value).
+The composition on the original two signals therefore cannot be XOR or XNOR.
+After normalization it is one of the four allowed gates, a projection, or
+zero. In the last two cases substitute and delete the later gate. Otherwise
+replace just that gate, preserving every other consumer of the earlier gate.
 
 Two transcription issues are resolved according to the intended constraints:
 C negates both pair selectors (the displayed paper clause misses one bar);
@@ -87,7 +80,7 @@ operator order `(f11, f10, f01)` from the encoder.
 - **N and A.** A constant or a projection can be eliminated by substitution.
   An unused step can be deleted. Both would give a smaller chain.
 - **R.** If a later step takes an earlier step and one of its operands,
-  compose the two operators into a normal operator on the earlier step's
+  use the constant-cofactor argument above to compose the operators on the earlier step's
   original operands. The earlier step can still serve its other consumers.
   The replacement has a smaller largest operand at the later step, so the
   new chain contradicts the choice of the least sequence.
@@ -108,37 +101,22 @@ is for minimum size. Check budgets in increasing order with `minimum` or
 ## Run and compare
 
 ```bash
-# XOR: one arbitrary binary step.
-aig-exact minimum -n 2 --hex 6 --max-gates 3 --model paper \
-  --encoding msv --symmetries NARCOS --out results/paper-xor
+# XOR: three AND/OR gates.
+aig-exact minimum -n 2 --hex 6 --max-gates 3 --model paper-aig \
+  --encoding msv --symmetries NARCOS --out results/and-or-xor
 
 # Three-input benchmark with unpruned reference minima.
 aig-exact npn -n 3 --out data/npn3.txt
 aig-exact reproduce -n 3 --functions data/npn3.txt --max-gates 6 \
-  --model paper --encoding ssv \
-  --workers 8 --timeout 300 --out results/paper3 --resume
+  --model paper-aig --encoding ssv \
+  --workers 8 --timeout 300 --out results/and-or3 --resume
 
-aig-exact manifest --minima results/paper3/minima.json \
+aig-exact manifest --minima results/and-or3/minima.json \
   --config configs/paper-encodings.json --out data/paper-matrix.jsonl
-aig-exact run --manifest data/paper-matrix.jsonl --out results/paper-matrix --workers 8 --resume
-aig-exact aggregate --runs results/paper-matrix --out results/paper-tables
+aig-exact run --manifest data/paper-matrix.jsonl --out results/and-or-matrix --workers 8 --resume
+aig-exact aggregate --runs results/and-or-matrix --out results/and-or-tables
 ```
 
 Results, options, minima and witnesses identify their model. Manifest creation
-rejects minima from a different model. Paper witnesses contain `operators`,
-with operator truth-table bit index 2*left+right, alongside unsigned AIGER-style
-signal literals in `gates`. They can be verified and inspected, but are not
-exported as AAG. AIG-specific restriction simplification is unavailable for
-paper witnesses; it is not silently applied to arbitrary operators.
-
-## Validation
-
-`tests/test_paper_encodings.py` checks the MSV counter exhaustively, variable
-families, all two-input functions, all three-input functions through three
-steps against an independent integer-truth-table enumerator, all 64 symmetry
-subsets on every three-input NPN minimum (the remaining classes use verified
-four-step witnesses and the exhaustive three-step lower bound), and explicit
-forbidden patterns for every breaker in each encoding. The tests run CaDiCaL
-3+ and independently simulate SAT witnesses before and after dead-step
-compaction. Each benchmark job checks its result against the reference minimum
-and records a mismatch as ERROR.
+rejects minima from a different model. Decoded witnesses use ordinary signed AIG literals and support AAG export,
+independent simulation, and restriction analysis.

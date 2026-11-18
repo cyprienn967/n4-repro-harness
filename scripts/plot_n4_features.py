@@ -134,7 +134,7 @@ def read_conflicts(path, features, configurations):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--analysis", type=Path, default=Path("results/n4/feature-analysis"),
+    parser.add_argument("--analysis", type=Path, default=Path("results/n4-and-or/feature-analysis"),
                         help="Directory written by analyze_n4.py")
     parser.add_argument("--out", type=Path, help="Output directory (default: <analysis>/plots)")
     parser.add_argument("--configuration", action="append", default=[],
